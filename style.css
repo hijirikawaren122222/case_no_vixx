@@ -87,22 +87,27 @@ body {
     border-left: 4px solid #dbb87c;
     transition: 0.1s;
 }
+/* 新样式：名字 + 动作 + 台词在同一行 */
+.speaker-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.3rem;
+}
 .speaker-name {
     font-weight: bold;
     color: #f3cf7a;
-    margin-bottom: 0.4rem;
+    font-size: 0.95rem;
+}
+.action {
+    color: #aaaaaa;
     font-size: 0.9rem;
-    letter-spacing: 1px;
+    font-style: normal;
 }
 .speaker-text {
     color: #e6eefa;
     line-height: 1.5;
     font-size: 0.95rem;
-}
-/* 動作描述：星號內的文字為灰色 */
-.speaker-text .action {
-    color: #aaaaaa;
-    font-style: normal;
 }
 .narration-text {
     color: #b9c7d4;
@@ -249,5 +254,9 @@ footer {
     }
     .dialogue-bubble {
         padding: 0.6rem 1rem;
+    }
+    .speaker-line {
+        flex-direction: column;
+        gap: 0.2rem;
     }
 }
