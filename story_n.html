@@ -22,7 +22,7 @@
         .game-machine {
             width: 95%;
             max-width: 550px;
-            margin-top: 2vh;
+            margin-top: 3vh;
             margin-bottom: 5vh;
             height: auto;
             max-height: 85vh;
@@ -174,17 +174,17 @@
 </div>
 <script src="common.js"></script>
 <script>
-// ---------- 全域 ----------
+    // ---------- 全域 ----------
     let step = 0;
-    let trustLevel = 0;
-    let detailLevel = 0;
-    let finalOutcome = 0;
+    let trustLevel = 0;         // 2=正確,1=中性,0=錯誤
+    let detailLevel = 0;        // 2=正確,1=中性,0=錯誤
+    let finalOutcome = 0;       // 0=失敗, 1=殘缺(無證詞), 2=部分真實(說謊), 3=完整真實
     let signedSuccess = false;
     let passwordSuccess = false;
     let evidenceCollected = [];
-    let selectedChoice1 = false, selectedChoice2 = false, selectedChoice3 = false, selectedSigned = false;
+    let selectedChoice1 = false, selectedChoice2 = false, selectedSigned = false;
 
-    let choice1Options = [], choice2Options = [], choice3Options = [], signedOptions = [];
+    let choice1Options = [], choice2Options = [], signedOptions = [];
 
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
@@ -203,12 +203,7 @@
         choice2Options = shuffleArray([
             { text: "沉默片刻，將桌上的懷表輕輕推近他。金屬的滴答聲填滿了空白。", value: 2, response: "米哈烏幾秒後鬆開緊握的拳頭，低聲說：「……那時候，我看到有人被帶走了。再也沒有回來。」" },
             { text: "向後靠向椅背，雙手抱胸，用不變的語調說：「不急。你想清楚再說。」", value: 1, response: "米哈烏舔了舔嘴唇，含混地說：「反正……就是燒了東西。細節我記不太清了。」" },
-            { text: "身體微微前傾，盯著他的眼睛，緩緩說：「你在怕什麼？怕說出來之後，你家人也會被燒掉？」", value: 0, response: "米哈烏猛地抬頭，臉色發白，然後迅速低下頭，只重複「我不知道……我什麼都不知道……」" }
-        ]);
-        choice3Options = shuffleArray([
-            { text: "「這是你女兒昨天畫的。她問媽媽，爸爸什麼時候回來。」（拿出照片）", value: 2, response: "米哈烏看著照片，眼淚奪眶而出：「我……我對不起她們……」" },
-            { text: "「如果你說出主管藏匿證據的位置，我可以讓你和你家人優先離開。」", value: 1, response: "米哈烏猶豫了一下：「……好吧，我告訴你。」" },
-            { text: "「時間到了。你不說，我走。你等的人不會來了。」", value: 0, response: "米哈烏絕望地閉上眼睛：「……走吧，反正也沒人在乎。」" }
+            { text: "身體前傾，盯著他的眼睛，緩緩說：「你在怕什麼？怕說出來之後，你家人也會被燒掉？」", value: 0, response: "米哈烏猛地抬頭，臉色發白，然後迅速低下頭，只重複「我不知道……我什麼都不知道……」" }
         ]);
         signedOptions = shuffleArray([
             { text: "拿出錄音筆和標準證詞文件，請他簽名並錄音。", value: 2 },
@@ -294,12 +289,12 @@
         setLocation("安全屋 · 途中");
         return `
             <div class="dialogue-container">
-                <div class="narration-text">凌晨一點二十分，抵抗組織聯絡員「烏鴉」帶我穿過三條被炸毀的街道。宵禁剛剛開始，遠處偶爾傳來巡邏隊的腳步聲。</div>
-                <div class="narration-text">我們在一棟廢棄裁縫店的衣櫃後面停下。烏鴉拉開暗門，露出向下的石階。煤油燈的氣味混著潮濕的霉味。</div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">烏鴉</span></div><div class="speaker-text">「人在下面，他叫米哈烏·科瓦爾斯基。戰前是華沙大學生物系的實驗員。三週前他自己找上我們，說知道 D-7 的秘密。但他一直不肯說全。」</div></div>
-                <div class="narration-text">我把懷表從馬甲口袋裡取出，握在手心。金屬的涼意讓我集中注意力。</div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「你守在門口，如果聽到我拍桌子三聲，就帶人進來。」</div></div>
-                <div class="narration-text">烏鴉沒有回答，只是把一把手槍遞給我。我拒絕了。審訊不是靠槍進行的。</div>
+                <div class="narration-text">抵抗組織聯絡員帶我穿過宵禁的街道。廢棄裁縫店的衣櫃後，暗門向下。</div>
+                <div class="narration-text">煤油燈的氣味混著潮濕的霉味。</div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">烏鴉</span></div><div class="speaker-text">「人在下面，他叫米哈烏·科瓦爾斯基。三週前他自己找上我們，但一直不肯說全。」</div></div>
+                <div class="narration-text">我握了握懷表，金屬的涼意讓我集中注意力。</div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「你守在門口。聽到我拍桌子三聲，就帶人進來。」</div></div>
+                <div class="narration-text">烏鴉遞來一把手槍。我拒絕了。審訊不是靠槍進行的。</div>
             </div>
         `;
     }
@@ -308,21 +303,19 @@
         setLocation("安全屋 · 地下室");
         return `
             <div class="dialogue-container">
-                <div class="narration-text">（走下樓梯，煤油燈的光照出一個中年男子蜷縮在木椅上。他穿著灰色毛衣，袖口起毛，左手虎口有舊繭。）</div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(走進地下室，把懷表放在桌上，沒有坐下，坐在他對面)</span></div><div class="speaker-text">「米哈烏·科瓦爾斯基。你左手虎口的繭，是長期抓握試管架留下的。戰前華沙大學微生物實驗室的人員名單裡，有你。」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(身體一僵，不敢抬頭)</span></div><div class="speaker-text">「……那些都是過去的事了。我現在只是個倉庫管理員。」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(沉默，右手拇指輕輕轉動懷表表殼。二十秒後，開口)</span></div><div class="speaker-text">「你結婚多久了？」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(疑惑)</span></div><div class="speaker-text">「……十二年。」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(語氣不變)</span></div><div class="speaker-text">「你女兒叫艾蓮娜，今年十歲。她喜歡畫畫。上次她畫了一幅向日葵，你太太把它貼在廚房冰箱上。」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(猛地抬頭，驚慌)</span></div><div class="speaker-text">「你……你怎麼知道這些？」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(平靜)</span></div><div class="speaker-text">「因為我在來之前，見過你太太。她說你已經三個月沒回家了。她很擔心你。」</div></div>
+                <div class="narration-text">（走下樓梯。一個中年男子蜷縮在木椅上，灰色毛衣，左手虎口有舊繭。）</div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(把懷表放在桌上，坐下)</span></div><div class="speaker-text">「米哈烏·科瓦爾斯基。你左手虎口的繭，是長期抓握試管架留下的。戰前華沙大學微生物實驗室的名單裡有你。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(不敢抬頭)</span></div><div class="speaker-text">「……那些都是過去的事了。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(沉默。二十秒後)</span></div><div class="speaker-text">「你女兒艾蓮娜畫的向日葵，你太太貼在冰箱上。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(猛地抬頭)</span></div><div class="speaker-text">「你怎麼知道這些？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(平靜)</span></div><div class="speaker-text">「我見過你太太。她說你三個月沒回家了。她很擔心你。」</div></div>
                 <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(嘴唇顫抖)</span></div><div class="speaker-text">「她……她們安全嗎？」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(從口袋裡拿出一張摺疊的紙條，推過去)</span></div><div class="speaker-text">「這是她今天寫的。你自己看。」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(顫抖著手打開，眼眶泛紅)</span></div><div class="speaker-text">「……她寫說有人送食物過去，還幫艾蓮娜找了老師。你到底是誰？」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(將懷表輕輕推向桌子中央，金屬反光映在米哈烏臉上)</span></div><div class="speaker-text">「一個想幫你活下去的人。但你需要先幫我。」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(沉默，手指不再抖，緊握成拳)</span></div><div class="speaker-text">「……好。你想知道什麼？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(推過紙條)</span></div><div class="speaker-text">「這是她今天寫的。自己看。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(顫抖著打開，眼眶泛紅)</span></div><div class="speaker-text">「……你到底是誰？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(將懷表輕輕推向桌子中央)</span></div><div class="speaker-text">「一個想幫你活下去的人。但你需要先幫我。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(握拳)</span></div><div class="speaker-text">「……好。你想知道什麼？」</div></div>
                 <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(身體微微前傾)</span></div><div class="speaker-text">「三月十五日，D-7 實驗室發生了什麼？」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(猶豫)</span></div><div class="speaker-text">「我說了，他們會殺我全家。你怎麼保證我說完之後，你和你的組織不會丟下我？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(猶豫)</span></div><div class="speaker-text">「我說了，他們會殺我全家。你怎麼保證不丟下我？」</div></div>
             </div>
         `;
     }
@@ -334,23 +327,20 @@
     }
 
     function renderFirstChoice2() {
+        setLocation("安全屋 · 審訊");
         let btns = choice2Options.map(opt => `<button class="option-btn" data-value="${opt.value}" data-response="${opt.response.replace(/"/g, '&quot;')}">${opt.text}</button>`).join('');
-        return `<div class="puzzle-area"><p>米哈烏開始描述洩漏當天，但說到關鍵處停頓。你如何回應？</p><div class="flex-buttons" id="choice2Btns">${btns}</div><div id="choice2Feedback" class="feedback"></div></div>`;
-    }
-
-    function renderFirstChoice3() {
-        let btns = choice3Options.map(opt => `<button class="option-btn" data-value="${opt.value}" data-response="${opt.response.replace(/"/g, '&quot;')}">${opt.text}</button>`).join('');
-        return `<div class="puzzle-area"><p>米哈烏突然閉嘴，眼神閃爍。你需要最後一搏。</p><div class="flex-buttons" id="choice3Btns">${btns}</div><div id="choice3Feedback" class="feedback"></div></div>`;
+        return `<div class="puzzle-area"><p>米哈烏開始描述洩漏當天，但說到關鍵處停頓。右手拇指反覆摩擦食指關節——極度緊張。你：</p><div class="flex-buttons" id="choice2Btns">${btns}</div><div id="choice2Feedback" class="feedback"></div></div>`;
     }
 
     function renderAfterAllChoices() {
         let dialogue = '';
         if (finalOutcome === 3) {
-            dialogue = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(深吸一口氣)</span></div><div class="speaker-text">「D-7 是 1942 年開始的秘密項目。對外說是研究斑疹傷寒疫苗，但實際上……是在改造一種病毒，讓它只感染特定人種。主管 K.B. 說這是『為了戰爭勝利後的秩序維護』。我們實驗室有三個核心區域：A 區培育病毒，B 區做動物實驗，C 區保存樣本和檔案。三月十五日下午，B 區的搬運工人在換罐子的時候，把培養罐碰倒了。那罐子裡是高濃度的活體病毒，而且是氣溶膠型的。警報響了不到三十秒就停了——主管說不能引人注意。他命令我們立刻撤離，然後連夜把所有接觸過的器材、四十七套防護服和……死人，都拉到後山燒了。一共燒了多少？我清點過：四十七套防護服，三個鐵桶的廢料，還有……三具屍體。兩個是當時的操作員，一個是第二天發病的清潔工。主管說：『戰爭快結束了，只要拖到投降，就沒人會追查。如果有人問，就說是普通流感。』對了，主管有個習慣：他會把重要日期和數量組合成六位數密碼，寫在筆記本封面內側。比如把月份、日期、數字連在一起。我見過他寫過好幾次，格式像是兩個數字兩個數字兩個數字這樣。」</div></div>`;
+            dialogue = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(深吸一口氣)</span></div><div class="speaker-text">「D-7 是改造一種病毒，讓它只感染特定人種。三月十五日下午，搬運工碰倒培養罐，高濃度活病毒洩漏。主管下令連夜燒掉所有接觸過的器材、四十七套防護服，還有三具屍體……兩個操作員，一個清潔工。主管說『戰爭快結束了，拖到投降就沒人追查。如果有人問，就說是流感。』</div></div>
+            <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「對了，他習慣把重要日期和數量組合成六位數密碼。比如把月份、日期、數量連在一起。我見過他寫 031547——三月十五日和四十七套。」</div></div>`;
         } else if (finalOutcome === 2) {
-            dialogue = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(眼神閃爍，語氣含糊)</span></div><div class="speaker-text">「嗯……那天出了意外，主管叫我們燒掉一些東西。防護服……大概幾十套吧，我也不確定。日期是三月中旬，具體哪天我記不清了。主管好像有個習慣用數字做密碼……可能是幾組數字拼在一起。但我真的不記得了。」</div></div>`;
+            dialogue = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(眼神閃爍，語氣含糊)</span></div><div class="speaker-text">「嗯……那天出了意外，主管叫我們燒掉一些東西。防護服……大概幾十套吧，我不確定。日期好像是三月中旬，具體哪天記不清了。他好像會用數字做密碼……可能是幾組數字拼在一起。」</div></div>`;
         } else if (finalOutcome === 1) {
-            dialogue = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(目光游移，語速極快)</span></div><div class="speaker-text">「嗯……就是出了意外……上面說不能講……我簽過文件……其他我真的不知道了。主管說不要多說……就這樣。」</div></div>`;
+            dialogue = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(目光游移，語速極快)</span></div><div class="speaker-text">「嗯……就是出了意外……上面說不能講……我簽過文件……其他我真的不知道了。」</div></div>`;
         } else {
             dialogue = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「……我什麼都不能說。」</div></div>`;
         }
@@ -361,8 +351,8 @@
         setLocation("安全屋 · 簽署文件");
         return `
             <div class="dialogue-container">
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「你願意把剛才說的錄下來，簽上名字，作為證詞嗎？」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「好。但我有一個條件——事成之後，我要帶著家人去瑞典。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「簽下名字，證詞才有效。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「……好，但事成之後送我們去瑞典。」</div></div>
                 <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「我會安排。」</div></div>
             </div>
         `;
@@ -377,14 +367,14 @@
         setLocation("工廠 · 辦公室");
         let hintText = "";
         if (finalOutcome === 3) {
-            hintText = "米哈烏說主管習慣把重要日期和數量組合起來當作密碼，像是把月份、日期、數量連在一起，變成六位數。我推測暗格的密碼應該與三月十五日和防護服數量有關。";
+            hintText = "米哈烏說主管習慣把重要日期和數量組合成六位數密碼。我推測暗格的密碼應該與三月十五日和防護服數量有關。";
         } else {
-            hintText = "米哈烏給的線索含糊不清，他說可能是月份、日期什麼的，但感覺他隱瞞了什麼。";
+            hintText = "米哈烏給的線索含糊不清，可能不可靠。";
         }
         return `
             <div class="dialogue-container">
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(走出地下室，對 Hyuk 發送無線電)</span></div><div class="speaker-text">「相爀，我需要你幫我進入工廠二樓，K.B. 的辦公室。米哈烏說暗格在書架第三層，後面有一個金屬盒。位置圖我馬上傳給你。」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">Hyuk</span><span class="action">(無線電回復，壓低聲音)</span></div><div class="speaker-text">「我已經在工廠外圍了。守衛換班還有不到四分鐘。你有密碼嗎？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(走出地下室，對 Hyuk 發送無線電)</span></div><div class="speaker-text">「相爀，我需要你幫我進入工廠二樓，K.B. 的辦公室。暗格在書架第三層。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">Hyuk</span><span class="action">(無線電回復，壓低聲音)</span></div><div class="speaker-text">「我已經在工廠外圍了。守衛換班還有不到四分鐘。密碼呢？」</div></div>
                 <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(回想米哈烏的話)</span></div><div class="speaker-text">「${hintText}」</div></div>
                 <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">Hyuk</span><span class="action">(低聲)</span></div><div class="speaker-text">「我試試。」</div></div>
             </div>
@@ -403,8 +393,15 @@
         `;
     }
 
-    function renderPasswordResult(success) {
-        const msg = success ? '<span class="correct-feedback">密碼正確！獲得主管 K.B. 的私人筆記。</span>' : '<span class="wrong-feedback">警報觸發！暗格自毀。Hyuk 從灰燼中找到一份燒剩的「會議記錄」殘頁。</span>';
+    function renderPasswordResult(success, isPartialGuessSuccess) {
+        let msg = '';
+        if (success && isPartialGuessSuccess) {
+            msg = '<span class="correct-feedback">N 低聲對 Hyuk 說：「你居然從那麼含糊的線索猜出來了？……運氣真好。」 Hyuk 輕笑：「這就是直覺。」 暗格打開，獲得主管 K.B. 的私人筆記。</span>';
+        } else if (success) {
+            msg = '<span class="correct-feedback">密碼正確！獲得主管 K.B. 的私人筆記。</span>';
+        } else {
+            msg = '<span class="wrong-feedback">警報觸發！暗格自毀。Hyuk 從灰燼中找到一份燒剩的「會議記錄」殘頁。</span>';
+        }
         return `<div class="puzzle-area"><p>${msg}</p></div>`;
     }
 
@@ -412,7 +409,7 @@
         setLocation("安全屋 · 尾聲");
         let html = `<div class="dialogue-container">`;
         if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_1.name)) {
-            html += `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(從衣服內襯裡拿出一封皺巴巴的信)</span></div><div class="speaker-text">「這是我前天在家門口發現的。不知道是誰塞的。我本來想扔掉，但是上面寫的東西……我覺得不太對。」</div></div>
+            html += `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(從衣服內襯裡拿出一封皺巴巴的信)</span></div><div class="speaker-text">「這是我前天在家門口發現的。不知道誰塞的。」</div></div>
             <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(接過來，打開閱讀)</span></div><div class="speaker-text">「……」</div></div>`;
             addEvidence(FAKE_EVIDENCE_1);
         }
@@ -425,7 +422,7 @@
         if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_2.name)) {
             html += `<div class="narration-text">N 彎腰從地上撿起半張紙片。</div>
             <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「這是什麼？」</div></div>
-            <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「哦，那是上週有人從門縫塞進來的另一張紙。上面寫的是……一些統計數字。我覺得不太可信，就扔地上了。」</div></div>`;
+            <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「上週塞進來的統計數字，我覺得假，就扔了。」</div></div>`;
             addEvidence(FAKE_EVIDENCE_2);
         }
         html += `<div class="narration-text">獲得證物：死亡統計表（殘頁）</div></div>`;
@@ -433,10 +430,10 @@
     }
 
     function renderScene3Part3() {
-        return `<div class="dialogue-container"><div class="narration-text">該回去了。希望其他人也有發現。</div></div>`;
+        return `<div class="dialogue-container"><div class="narration-text">N 將所有文件收好，走出地下室：「該回去了。希望其他人也有發現。」</div></div>`;
     }
-// ========== 流程控制 ==========
-    let step = 0;
+
+    // ========== 流程控制 ==========
     function loadStep(stepId) {
         step = stepId;
         const container = document.getElementById('storyContent');
@@ -450,23 +447,22 @@
             case 1: html = renderScene1Start(); break;
             case 2: html = renderFirstChoice1(); showContinue = false; break;
             case 3: html = renderFirstChoice2(); showContinue = false; break;
-            case 4: html = renderFirstChoice3(); showContinue = false; break;
-            case 5: html = renderAfterAllChoices(); break;
-            case 6:
+            case 4: html = renderAfterAllChoices(); break;
+            case 5:
                 if (finalOutcome === 2 || finalOutcome === 3) {
                     html = renderAutoSign();
                     showContinue = true;
-                    continueTarget = 7;
+                    continueTarget = 6;
                 } else {
                     loadStep(11);
                     return;
                 }
                 break;
-            case 7:
+            case 6:
                 html = renderSignChoice();
                 showContinue = false;
                 break;
-            case 8:
+            case 7:
                 if ((finalOutcome === 3 && signedSuccess) || (finalOutcome === 2 && signedSuccess)) {
                     html = renderPasswordIntro();
                 } else {
@@ -474,20 +470,22 @@
                     return;
                 }
                 break;
-            case 9:
+            case 8:
                 html = renderPasswordPuzzle();
                 showContinue = false;
                 break;
-            case 10:
-                html = renderPasswordResult(passwordSuccess);
+            case 9:
+                // 密碼結果，需傳入是否為部分真實分支靠猜測成功
+                let isPartialGuess = (finalOutcome === 2 && signedSuccess && passwordSuccess);
+                html = renderPasswordResult(passwordSuccess, isPartialGuess);
                 break;
-            case 11:
+            case 10:
                 html = renderScene3Part1();
                 break;
-            case 12:
+            case 11:
                 html = renderScene3Part2();
                 break;
-            case 13:
+            case 12:
                 html = renderScene3Part3();
                 break;
             default: return;
@@ -506,19 +504,18 @@
 
         if (step === 2) bindChoice1();
         else if (step === 3) bindChoice2();
-        else if (step === 4) bindChoice3();
-        else if (step === 7) bindSigned();
-        else if (step === 9) bindPassword();
-        else if (step === 10) {
+        else if (step === 6) bindSigned();
+        else if (step === 8) bindPassword();
+        else if (step === 9) {
+            const btn = document.getElementById('continueBtn');
+            if (btn) btn.onclick = () => loadStep(10);
+        } else if (step === 10) {
             const btn = document.getElementById('continueBtn');
             if (btn) btn.onclick = () => loadStep(11);
         } else if (step === 11) {
             const btn = document.getElementById('continueBtn');
             if (btn) btn.onclick = () => loadStep(12);
         } else if (step === 12) {
-            const btn = document.getElementById('continueBtn');
-            if (btn) btn.onclick = () => loadStep(13);
-        } else if (step === 13) {
             const btn = document.getElementById('continueBtn');
             if (btn) btn.onclick = () => finishAndSave();
         }
@@ -560,41 +557,16 @@
             const continueBtn = document.getElementById('continueBtn');
             if (continueBtn) {
                 continueBtn.style.display = 'inline-block';
-                if (trustLevel === 2 && detailLevel === 0) {
-                    continueBtn.onclick = () => loadStep(4);
-                } else {
-                    if (trustLevel === 0) finalOutcome = 0;
-                    else if (trustLevel === 1 && detailLevel === 0) finalOutcome = 0;
-                    else if (trustLevel === 1 && detailLevel === 1) finalOutcome = 1;
-                    else if (trustLevel === 1 && detailLevel === 2) finalOutcome = 2;
-                    else if (trustLevel === 2 && detailLevel === 1) finalOutcome = 2;
-                    else if (trustLevel === 2 && detailLevel === 2) finalOutcome = 3;
-                    else finalOutcome = 0;
-                    continueBtn.onclick = () => loadStep(5);
+                if (trustLevel === 0) finalOutcome = 0;
+                else if (trustLevel === 1) {
+                    if (val === 2 || val === 1) finalOutcome = 2;
+                    else finalOutcome = 1;
+                } else { // trustLevel === 2
+                    if (val === 2) finalOutcome = 3;
+                    else if (val === 1) finalOutcome = 2;
+                    else finalOutcome = 1;
                 }
-            }
-        };
-        btns.forEach(btn => btn.onclick = () => handle(btn));
-    }
-
-    function bindChoice3() {
-        const btns = document.querySelectorAll('#choice3Btns .option-btn');
-        if (!btns.length) return;
-        const handle = (btn) => {
-            if (selectedChoice3) return;
-            selectedChoice3 = true;
-            const val = parseInt(btn.dataset.value);
-            const response = btn.dataset.response;
-            if (val === 2) finalOutcome = 3;
-            else if (val === 1) finalOutcome = 2;
-            else finalOutcome = 0;
-            const feedbackDiv = document.getElementById('choice3Feedback');
-            if (feedbackDiv) feedbackDiv.innerHTML = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">${response}</div></div>`;
-            btns.forEach(b => b.disabled = true);
-            const continueBtn = document.getElementById('continueBtn');
-            if (continueBtn) {
-                continueBtn.style.display = 'inline-block';
-                continueBtn.onclick = () => loadStep(5);
+                continueBtn.onclick = () => loadStep(4);
             }
         };
         btns.forEach(btn => btn.onclick = () => handle(btn));
@@ -621,7 +593,7 @@
             const continueBtn = document.getElementById('continueBtn');
             if (continueBtn) {
                 continueBtn.style.display = 'inline-block';
-                continueBtn.onclick = () => loadStep(8);
+                continueBtn.onclick = () => loadStep(7);
             }
         };
         btns.forEach(btn => btn.onclick = () => handle(btn));
@@ -637,22 +609,38 @@
             submitted = true;
             const val = input.value.trim();
             let success = false;
-            if (finalOutcome === 3 && val === '031547') {
+            let isPartialGuess = false;
+            if (finalOutcome === 3 && signedSuccess && val === '031547') {
                 success = true;
                 passwordSuccess = true;
                 addEvidence(REAL_EVIDENCE_2);
+            } else if (finalOutcome === 2 && signedSuccess && val === '031547') {
+                // 部分真實分支但玩家猜對密碼 -> 小彩蛋
+                success = true;
+                passwordSuccess = true;
+                isPartialGuess = true;
+                addEvidence(REAL_EVIDENCE_2);
                 feedback.innerHTML = '<span class="correct-feedback">密碼正確！獲得主管 K.B. 的私人筆記。</span>';
+                // 稍後會顯示彩蛋對話
             } else {
                 success = false;
                 passwordSuccess = false;
                 if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_3.name)) addEvidence(FAKE_EVIDENCE_3);
-                feedback.innerHTML = '<span class="wrong-feedback">警報觸發！暗格自毀。Hyuk 從灰燼中找到一份燒剩的「會議記錄」殘頁。</span>';
+                feedback.innerHTML = '<span class="wrong-feedback">密碼錯誤！警報觸發，暗格自毀。</span>';
             }
             if (submitBtn) submitBtn.disabled = true;
             const continueBtn = document.getElementById('continueBtn');
             if (continueBtn) {
                 continueBtn.style.display = 'inline-block';
-                continueBtn.onclick = () => loadStep(10);
+                if (success && isPartialGuess) {
+                    // 先顯示結果，然後在下一步顯示彩蛋對話
+                    continueBtn.onclick = () => {
+                        // 顯示密碼結果頁面（彩蛋訊息）
+                        loadStep(9);
+                    };
+                } else {
+                    continueBtn.onclick = () => loadStep(9);
+                }
             }
         };
         if (submitBtn) submitBtn.onclick = check;
