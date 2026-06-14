@@ -88,22 +88,47 @@
 </div>
 <script src="common.js"></script>
 <script>
-    // ----- 全域 -----
-    let currentStep = 0;               // 0:開頭 1:場景一 2:第一次三選 3:結果 4:證詞成功對話 5:第二次選擇 6:第二次結果 7:密碼前對話 8:密碼輸入 9:密碼結果 10:結尾假證物
-    let trustLevel = 0;               // 0=失敗,1=中性,2=成功 (第一次選擇)
-    let detailLevel = 0;              // 0=失敗,1=中性,2=成功 (第二次選擇)
-    let finalOutcome = 0;             // 0=失敗無證詞,1=殘缺證詞(假),2=部分真實證詞(真但弱),3=完整真實證詞
-    let secondChoiceCorrect = false;   // 第二次選擇(簽名)是否正確
+// ---------- 全域 ----------
+    let currentStep = 0;
+    let trustLevel = 0;
+    let detailLevel = 0;
+    let finalOutcome = 0;
     let passwordSuccess = false;
     let evidenceCollected = [];
     let attemptsLeft = 3;
-    let selectedChoice1 = false;
-    let selectedChoice2 = false;
+    let selectedChoice1 = false, selectedChoice2 = false, selectedChoice3 = false;
 
-    // 證物定義 (真證物描述包含燒毀四十七套防護服)
+    let choice1Options = [], choice2Options = [], choice3Options = [];
+
+    function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function initOptions() {
+        choice1Options = shuffleArray([
+            { text: "「我不需要你信任我。你太太和女兒的地址只有我知道。我們是利益共同體。」", value: 2, response: "米哈烏沉默片刻，然後緩緩點頭：「……好，我信你這一次。」" },
+            { text: "「我沒辦法給你百分百保證，但過去三個月我保護過六個像你一樣的證人，沒有一個出事。」", value: 1, response: "米哈烏仍然緊張，但稍微放鬆了肩膀：「……但願你說的是真的。」" },
+            { text: "「你沒有選擇。不說，你家人今晚就會被轉移到拘留營。」", value: 0, response: "米哈烏嚇得縮在角落，臉色發白：「你……你們都一樣……」" }
+        ]);
+        choice2Options = shuffleArray([
+            { text: "「那天一定很可怕。罐子倒下去的時候，你第一個念頭是什麼？」", value: 2, response: "米哈烏低下頭，聲音顫抖：「我……我想的是我女兒。她還那麼小……」" },
+            { text: "「你當時站在哪裡？距離洩漏點多遠？」", value: 1, response: "米哈烏：「我在C區，大概二十公尺外。但是警報響的時候，我看到B區的人跑出來，滿臉是血……」" },
+            { text: "「防護服為什麼會少三十五套？是不是有人隱瞞了真實感染人數？」", value: 0, response: "米哈烏警覺地看著你，突然閉嘴不語。" }
+        ]);
+        choice3Options = shuffleArray([
+            { text: "「這是你女兒昨天畫的。她問媽媽，爸爸什麼時候回來。」(拿出照片)", value: 2, response: "米哈烏看著照片，眼淚奪眶而出：「我……我對不起她們……」" },
+            { text: "「如果你說出主管藏匿證據的位置，我可以讓你和你家人優先離開。」", value: 1, response: "米哈烏猶豫了一下：「……好吧，我告訴你。」" },
+            { text: "「時間到了。你不說，我走。你等的人不會來了。」", value: 0, response: "米哈烏絕望地閉上眼睛：「……走吧，反正也沒人在乎。」" }
+        ]);
+    }
+
     const REAL_EVIDENCE_FULL = {
         name: "米哈烏的完整證詞錄音與簽名文件",
-        description: "證人：米哈烏·科瓦爾斯基，原 D-7 實驗室高級實驗助理\n證詞內容：\n- D-7 項目為生物武器研發，針對特定人種。\n- 1944 年 3 月 15 日，B 區發生高濃度活病毒洩漏。\n- 主管 K.B. 下令連夜燒毀四十七套防護服及所有污染物品，並焚燒三具屍體。\n- 事後被要求統一對外稱「流感」。\n證人簽名：米哈烏·科瓦爾斯基（附手印）\n錄音時間：1944 年 X 月 X 日\n(備註：證詞細節完整，情緒真實。)",
+        description: "證人：米哈烏·科瓦爾斯基，原 D-7 實驗室高級實驗助理\n證詞內容：\n- D-7 項目為生物武器研發，針對特定人種。\n- 1944 年 3 月 15 日，B 區發生高濃度活病毒洩漏。\n- 主管 K.B. 下令連夜燒毀四十七套防護服及所有污染物品，並焚燒三具屍體。\n- 事後被要求統一對外稱「流感」。\n證人簽名：米哈烏·科瓦爾斯基（附手印）\n錄音時間：1944 年 X 月 X 日",
         note: "（筆記：完整且可信，無矛盾。）",
         isReal: true
     };
@@ -167,8 +192,7 @@
             window.location.href = 'main.html';
         }
     }
-
-    // ----- 渲染場景 -----
+// ----- 渲染場景函數（完整）-----
     function renderScene0() {
         return `
             <div class="dialogue-container">
@@ -204,139 +228,42 @@
             <div class="flex-buttons"><button id="nextStepBtn" class="btn-primary">繼續</button></div>
         `;
     }
-
-    // 第一次選擇 (三次子選擇)
-    function renderFirstChoiceRound1() {
-        return `
-            <div class="puzzle-area">
-                <p><strong>系統提示</strong>：米哈烏需要信任。你如何回應？</p>
-                <div class="flex-buttons">
-                    <button id="choice1_A" class="option-btn">「我不需要你信任我。你太太和女兒的地址只有我知道。我們是利益共同體。」</button>
-                    <button id="choice1_B" class="option-btn">「我沒辦法給你百分百保證，但過去三個月我保護過六個像你一樣的證人，沒有一個出事。」</button>
-                    <button id="choice1_C" class="option-btn">「你沒有選擇。不說，你家人今晚就會被轉移到拘留營。」</button>
-                </div>
-                <div id="choiceFeedback" class="feedback"></div>
-            </div>
-        `;
+    function renderFirstChoice1() {
+        let btns = choice1Options.map(opt => `<button class="option-btn" data-value="${opt.value}" data-response="${opt.response.replace(/"/g, '&quot;')}">${opt.text}</button>`).join('');
+        return `<div class="puzzle-area"><p>米哈烏需要信任。你如何回應？</p><div class="flex-buttons" id="choice1Btns">${btns}</div><div id="choice1Feedback" class="feedback"></div></div>`;
     }
-    function renderFirstChoiceRound2() {
-        return `
-            <div class="puzzle-area">
-                <p><strong>系統提示</strong>：米哈烏開始描述洩漏當天，但說到關鍵處停頓。你如何引導他說出更多？</p>
-                <div class="flex-buttons">
-                    <button id="choice2_A" class="option-btn">「那天一定很可怕。罐子倒下去的時候，你第一個念頭是什麼？」</button>
-                    <button id="choice2_B" class="option-btn">「你當時站在哪裡？距離洩漏點多遠？」</button>
-                    <button id="choice2_C" class="option-btn">「防護服為什麼會少三十五套？是不是有人隱瞞了真實感染人數？」</button>
-                </div>
-                <div id="choiceFeedback2" class="feedback"></div>
-            </div>
-        `;
+    function renderFirstChoice2() {
+        let btns = choice2Options.map(opt => `<button class="option-btn" data-value="${opt.value}" data-response="${opt.response.replace(/"/g, '&quot;')}">${opt.text}</button>`).join('');
+        return `<div class="puzzle-area"><p>米哈烏開始描述洩漏當天，但說到關鍵處停頓。你如何引導他說出更多？</p><div class="flex-buttons" id="choice2Btns">${btns}</div><div id="choice2Feedback" class="feedback"></div></div>`;
     }
-    function renderFirstChoiceRound3() {
-        return `
-            <div class="puzzle-area">
-                <p><strong>系統提示</strong>：米哈烏突然閉嘴，眼神閃爍。你需要最後一搏。</p>
-                <div class="flex-buttons">
-                    <button id="choice3_A" class="option-btn">「這是你女兒昨天畫的。她問媽媽，爸爸什麼時候回來。」(拿出照片)</button>
-                    <button id="choice3_B" class="option-btn">「如果你說出主管藏匿證據的位置，我可以讓你和你家人優先離開。」</button>
-                    <button id="choice3_C" class="option-btn">「時間到了。你不說，我走。你等的人不會來了。」</button>
-                </div>
-                <div id="choiceFeedback3" class="feedback"></div>
-            </div>
-        `;
+    function renderFirstChoice3() {
+        let btns = choice3Options.map(opt => `<button class="option-btn" data-value="${opt.value}" data-response="${opt.response.replace(/"/g, '&quot;')}">${opt.text}</button>`).join('');
+        return `<div class="puzzle-area"><p>米哈烏突然閉嘴，眼神閃爍。你需要最後一搏。</p><div class="flex-buttons" id="choice3Btns">${btns}</div><div id="choice3Feedback" class="feedback"></div></div>`;
     }
-
-    function renderFirstChoiceOutcome() {
-        let msg = '';
-        let canProceed = true;
-        if (trustLevel === 0) {
-            msg = '<span class="wrong-feedback">米哈烏嚇得縮在角落，拒絕再開口。審訊失敗。</span>';
-            canProceed = false;
-            finalOutcome = 0;
-        } else if (trustLevel === 1) {
-            if (detailLevel === 0) {
-                msg = '<span class="wrong-feedback">米哈烏變得極度防衛，審訊中斷。</span>';
-                canProceed = false;
-                finalOutcome = 0;
-            } else if (detailLevel === 1) {
-                msg = '<span class="correct-feedback">米哈烏說出部分事實，但仍有保留。證詞殘缺。</span>';
-                finalOutcome = 1;
-            } else {
-                msg = '<span class="correct-feedback">米哈烏放下戒心，說出完整經過。</span>';
-                finalOutcome = 3;
-            }
-        } else { // trustLevel === 2
-            if (detailLevel === 0) {
-                msg = '<span class="wrong-feedback">米哈烏突然沉默，需要最後一搏。</span>';
-                // 進入第三次選擇，這裡先不顯示結果，等待第三次選擇
-                return null;
-            } else if (detailLevel === 1) {
-                msg = '<span class="correct-feedback">米哈烏說出基本事實，但缺乏情感細節。證詞部分可信。</span>';
-                finalOutcome = 2;
-            } else {
-                msg = '<span class="correct-feedback">米哈烏哽咽說出所有細節，證詞完整。</span>';
-                finalOutcome = 3;
-            }
-        }
-        if (canProceed === false || finalOutcome !== 0) {
-            return `<div class="puzzle-area"><p>${msg}</p><div class="flex-buttons"><button id="continueAfterChoiceBtn" class="btn-primary">繼續</button></div></div>`;
-        }
-        return null;
-    }
-
-    function renderFirstChoiceRound3Result() {
-        // 第三次選擇結果，僅在 trustLevel===2 && detailLevel===0 時出現
-        let msg = '';
-        let thirdCorrect = false;
-        // 會由外部變數記錄 thirdChoiceResult，這裡簡單處理：先用一個變數
-        return `
-            <div class="puzzle-area">
-                <p id="thirdOutcomeMsg"></p>
-                <div class="flex-buttons"><button id="continueAfterChoice3Btn" class="btn-primary">繼續</button></div>
-            </div>
-        `;
-    }
-
-    function renderAfterFirstSuccess() {
-        // 根據 finalOutcome 顯示不同證詞內容
+    function renderAfterAllChoices() {
         let dialogue = '';
         if (finalOutcome === 3) {
             dialogue = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(深吸一口氣)</span></div><div class="speaker-text">「D-7 是 1942 年開始的秘密項目。對外說是研究斑疹傷寒疫苗，但實際上……是在改造一種病毒，讓它只感染特定人種。主管 K.B. 說這是『為了戰爭勝利後的秩序維護』。我們實驗室有三個核心區域：A 區培育病毒，B 區做動物實驗，C 區保存樣本和檔案。三月十五日下午，B 區的搬運工人在換罐子的時候，把培養罐碰倒了。那罐子裡是高濃度的活體病毒，而且是氣溶膠型的。警報響了不到三十秒就停了——主管說不能引人注意。他命令我們立刻撤離，然後連夜把所有接觸過的器材、四十七套防護服和……死人，都拉到後山燒了。一共燒了多少？我清點過：四十七套防護服，三個鐵桶的廢料，還有……三具屍體。兩個是當時的操作員，一個是第二天發病的清潔工。主管說：『戰爭快結束了，只要拖到投降，就沒人會追查。如果有人問，就說是普通流感。』」</div></div>`;
         } else if (finalOutcome === 2) {
             dialogue = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「三月十五日發生洩漏，主管叫我們燒掉防護服和器材，還燒了幾具屍體。之後統一說是流感。詳細數量我不記得了。」</div></div>`;
-        } else if (finalOutcome === 1) {
-            dialogue = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「發生洩漏……主管下令銷毀證據……我只能說這麼多。」</div></div>`;
         } else {
-            // 失敗不該到這裡
             dialogue = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「……毫無收穫。」</div></div>`;
         }
         return `
-            <div class="dialogue-container">
-                ${dialogue}
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(平靜)</span></div><div class="speaker-text">「你願意把剛才說的錄下來，簽上名字，作為證詞嗎？」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(點頭)</span></div><div class="speaker-text">「好。但我有一個條件——事成之後，我要帶著家人去瑞典。」</div></div>
-                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(點頭)</span></div><div class="speaker-text">「我會安排。」</div></div>
-            </div>
+            <div class="dialogue-container">${dialogue}</div>
             <div class="flex-buttons"><button id="nextStepBtn" class="btn-primary">繼續</button></div>
         `;
     }
-
-    function renderSecondChoice() {
-        return `
-            <div class="puzzle-area">
-                <p><strong>系統提示</strong>：米哈烏願意配合，你需要確保證詞具有法律效力。</p>
-                <div class="flex-buttons">
-                    <button id="choice2_A" class="option-btn">拿出錄音筆和標準證詞文件，請他簽名並錄音。</button>
-                    <button id="choice2_B" class="option-btn">口頭承諾，只用筆記記錄。</button>
-                    <button id="choice2_C" class="option-btn">讓他先寫關鍵詞在廢紙上，說回去再整理。</button>
-                </div>
-                <div id="choice2Feedback" class="feedback"></div>
-            </div>
-        `;
-    }
-    function renderSecondChoiceResult(isCorrect) {
-        const msg = isCorrect ? '<span class="correct-feedback">米哈烏簽署文件並錄音。獲得證詞。</span>' : '<span class="wrong-feedback">米哈烏感覺你沒有誠意，拒絕簽字。證詞無效。</span>';
-        return `<div class="puzzle-area"><p>${msg}</p><div class="flex-buttons"><button id="continueAfterChoice2Btn" class="btn-primary">繼續</button></div></div>`;
+    function renderAutoSign() {
+        if (finalOutcome >= 2) {
+            addEvidence(REAL_EVIDENCE_FULL);
+            return `<div class="dialogue-container"><div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「錄音完畢，請簽名。」</div></div><div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「好。」（簽下名字）</div></div></div><div class="flex-buttons"><button id="nextStepBtn" class="btn-primary">繼續</button></div>`;
+        } else if (finalOutcome === 1) {
+            addEvidence(REAL_EVIDENCE_PARTIAL);
+            return `<div class="dialogue-container"><div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「錄音完畢，可以簽名嗎？」</div></div><div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「……我不想簽，但你可以拿去用。」</div></div></div><div class="flex-buttons"><button id="nextStepBtn" class="btn-primary">繼續</button></div>`;
+        } else {
+            return `<div class="dialogue-container"><div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「你沒有簽名，這份證詞效力不足。」</div></div></div><div class="flex-buttons"><button id="nextStepBtn" class="btn-primary">繼續</button></div>`;
+        }
     }
     function renderPasswordIntro() {
         return `
@@ -353,7 +280,7 @@
         attemptsLeft = 3;
         return `
             <div class="puzzle-area">
-                <p><strong>密碼破譯</strong>：根據對話線索（洩漏日期、防護服數量等），推斷暗格的六位數密碼。</p>
+                <p>根據對話線索，推斷暗格的六位數密碼。</p>
                 <input type="text" id="pwdInput" placeholder="請輸入六位數字密碼" maxlength="6">
                 <div class="attempts-left">剩餘嘗試次數：3</div>
                 <button id="submitPwdBtn" class="btn-primary">確認密碼</button>
@@ -382,145 +309,93 @@
         return html;
     }
 
-    // ----- 流程控制（狀態機）-----
-    let state = 0; // 0,1,2,3...
-    function loadStep(step) {
+    // ----- 流程控制 -----
+    let step = 0;
+    function loadStep(s) {
+        step = s;
         const container = document.getElementById('storyContent');
         if (!container) return;
         let html = '';
         switch(step) {
             case 0: html = renderScene0(); break;
             case 1: html = renderScene1Start(); break;
-            case 2: html = renderFirstChoiceRound1(); break;
-            case 3: html = renderFirstChoiceRound2(); break;
-            case 4: html = renderFirstChoiceRound3(); break;
-            case 5: html = renderFirstChoiceOutcome(); if (!html) { loadStep(4); return; } break;
-            case 6: html = renderAfterFirstSuccess(); break;
-            case 7: html = renderSecondChoice(); break;
-            case 8: html = renderSecondChoiceResult(secondChoiceCorrect); break;
-            case 9: html = renderPasswordIntro(); break;
-            case 10: html = renderPasswordPuzzle(); break;
-            case 11: html = renderPasswordResult(passwordSuccess); break;
-            case 12: html = renderScene3(); break;
+            case 2: html = renderFirstChoice1(); break;
+            case 3: html = renderFirstChoice2(); break;
+            case 4: html = renderFirstChoice3(); break;
+            case 5: html = renderAfterAllChoices(); break;
+            case 6: html = renderAutoSign(); break;
+            case 7: html = renderPasswordIntro(); break;
+            case 8: html = renderPasswordPuzzle(); break;
+            case 9: html = renderPasswordResult(passwordSuccess); break;
+            case 10: html = renderScene3(); break;
             default: return;
         }
         container.innerHTML = html;
         attachEvents(step);
     }
 
-    let round1Result = 0, round2Result = 0, round3Result = 0;
-    function attachEvents(step) {
-        if (step === 0 || step === 1 || step === 6 || step === 9) {
+    function attachEvents(s) {
+        if (s === 0 || s === 1 || s === 5 || s === 6 || s === 7) {
             const btn = document.getElementById('nextStepBtn');
-            if (btn) btn.onclick = () => loadStep(step + 1);
+            if (btn) btn.onclick = () => loadStep(s + 1);
         }
-        else if (step === 2) {
-            const optA = document.getElementById('choice1_A');
-            const optB = document.getElementById('choice1_B');
-            const optC = document.getElementById('choice1_C');
-            const handle = (val) => {
+        else if (s === 2) {
+            const btns = document.querySelectorAll('#choice1Btns .option-btn');
+            const handle = (btn) => {
                 if (selectedChoice1) return;
                 selectedChoice1 = true;
-                round1Result = val; // 2=A,1=B,0=C
-                if (val === 2) trustLevel = 2;
-                else if (val === 1) trustLevel = 1;
-                else trustLevel = 0;
-                document.getElementById('choiceFeedback').innerHTML = `<span class="correct-feedback">已選擇。</span>`;
-                [optA, optB, optC].forEach(b => b.disabled = true);
-                loadStep(3);
+                const val = parseInt(btn.dataset.value);
+                const response = btn.dataset.response;
+                trustLevel = val;
+                document.getElementById('choice1Feedback').innerHTML = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">${response}</div></div>`;
+                btns.forEach(b => b.disabled = true);
+                setTimeout(() => loadStep(3), 1500);
             };
-            if (optA) optA.onclick = () => handle(2);
-            if (optB) optB.onclick = () => handle(1);
-            if (optC) optC.onclick = () => handle(0);
+            btns.forEach(btn => btn.onclick = () => handle(btn));
         }
-        else if (step === 3) {
-            const optA = document.getElementById('choice2_A');
-            const optB = document.getElementById('choice2_B');
-            const optC = document.getElementById('choice2_C');
-            const handle = (val) => {
+        else if (s === 3) {
+            const btns = document.querySelectorAll('#choice2Btns .option-btn');
+            const handle = (btn) => {
                 if (selectedChoice2) return;
                 selectedChoice2 = true;
-                round2Result = val; // 2=A,1=B,0=C
-                if (val === 2) detailLevel = 2;
-                else if (val === 1) detailLevel = 1;
-                else detailLevel = 0;
-                document.getElementById('choiceFeedback2').innerHTML = `<span class="correct-feedback">已選擇。</span>`;
-                [optA, optB, optC].forEach(b => b.disabled = true);
+                const val = parseInt(btn.dataset.value);
+                const response = btn.dataset.response;
+                detailLevel = val;
+                document.getElementById('choice2Feedback').innerHTML = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">${response}</div></div>`;
+                btns.forEach(b => b.disabled = true);
                 if (trustLevel === 2 && detailLevel === 0) {
-                    loadStep(4);
+                    setTimeout(() => loadStep(4), 1500);
                 } else {
-                    loadStep(5);
+                    // 直接出結果
+                    if (trustLevel === 0) finalOutcome = 0;
+                    else if (trustLevel === 1 && detailLevel === 0) finalOutcome = 0;
+                    else if (trustLevel === 1 && detailLevel === 1) finalOutcome = 1;
+                    else if (trustLevel === 1 && detailLevel === 2) finalOutcome = 2;
+                    else if (trustLevel === 2 && detailLevel === 1) finalOutcome = 2;
+                    else if (trustLevel === 2 && detailLevel === 2) finalOutcome = 3;
+                    else finalOutcome = 0;
+                    setTimeout(() => loadStep(5), 1500);
                 }
             };
-            if (optA) optA.onclick = () => handle(2);
-            if (optB) optB.onclick = () => handle(1);
-            if (optC) optC.onclick = () => handle(0);
+            btns.forEach(btn => btn.onclick = () => handle(btn));
         }
-        else if (step === 4) {
-            const optA = document.getElementById('choice3_A');
-            const optB = document.getElementById('choice3_B');
-            const optC = document.getElementById('choice3_C');
-            const handle = (val) => {
-                if (round3Result) return;
-                round3Result = val;
-                if (val === 2) {
-                    finalOutcome = 3;
-                    document.getElementById('thirdOutcomeMsg').innerHTML = '<span class="correct-feedback">米哈烏淚崩，全盤托出。證詞完整。</span>';
-                } else if (val === 1) {
-                    finalOutcome = 2;
-                    document.getElementById('thirdOutcomeMsg').innerHTML = '<span class="correct-feedback">米哈烏說出部分，證詞殘缺。</span>';
-                } else {
-                    finalOutcome = 0;
-                    document.getElementById('thirdOutcomeMsg').innerHTML = '<span class="wrong-feedback">米哈烏徹底放棄，審訊失敗。</span>';
-                }
-                [optA, optB, optC].forEach(b => b.disabled = true);
-                const continueBtn = document.getElementById('continueAfterChoice3Btn');
-                if (continueBtn) continueBtn.onclick = () => {
-                    if (finalOutcome === 0) loadStep(12);
-                    else loadStep(6);
-                };
+        else if (s === 4) {
+            const btns = document.querySelectorAll('#choice3Btns .option-btn');
+            const handle = (btn) => {
+                if (selectedChoice3) return;
+                selectedChoice3 = true;
+                const val = parseInt(btn.dataset.value);
+                const response = btn.dataset.response;
+                if (val === 2) finalOutcome = 3;
+                else if (val === 1) finalOutcome = 2;
+                else finalOutcome = 0;
+                document.getElementById('choice3Feedback').innerHTML = `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">${response}</div></div>`;
+                btns.forEach(b => b.disabled = true);
+                setTimeout(() => loadStep(5), 1500);
             };
-            if (optA) optA.onclick = () => handle(2);
-            if (optB) optB.onclick = () => handle(1);
-            if (optC) optC.onclick = () => handle(0);
+            btns.forEach(btn => btn.onclick = () => handle(btn));
         }
-        else if (step === 5) {
-            const continueBtn = document.getElementById('continueAfterChoiceBtn');
-            if (continueBtn) continueBtn.onclick = () => {
-                if (finalOutcome === 0) loadStep(12);
-                else loadStep(6);
-            };
-        }
-        else if (step === 7) {
-            const optA = document.getElementById('choice2_A');
-            const optB = document.getElementById('choice2_B');
-            const optC = document.getElementById('choice2_C');
-            const handle = (isCorrect) => {
-                if (selectedSecond) return;
-                selectedSecond = true;
-                secondChoiceCorrect = isCorrect;
-                if (isCorrect) {
-                    if (finalOutcome === 3) addEvidence(REAL_EVIDENCE_FULL);
-                    else if (finalOutcome === 2) addEvidence(REAL_EVIDENCE_PARTIAL);
-                    else addEvidence(FAKE_EVIDENCE_3);
-                } else {
-                    // 錯誤則不加入任何真證物
-                }
-                [optA, optB, optC].forEach(b => b.disabled = true);
-                loadStep(8);
-            };
-            if (optA) optA.onclick = () => handle(true);
-            if (optB) optB.onclick = () => handle(false);
-            if (optC) optC.onclick = () => handle(false);
-        }
-        else if (step === 8) {
-            const continueBtn = document.getElementById('continueAfterChoice2Btn');
-            if (continueBtn) continueBtn.onclick = () => {
-                if (secondChoiceCorrect && (finalOutcome === 3 || finalOutcome === 2)) loadStep(9);
-                else loadStep(12);
-            };
-        }
-        else if (step === 10) {
+        else if (s === 8) {
             const submitBtn = document.getElementById('submitPwdBtn');
             const input = document.getElementById('pwdInput');
             const feedback = document.getElementById('pwdFeedback');
@@ -530,7 +405,7 @@
                 if (val === '031547') {
                     passwordSuccess = true;
                     addEvidence(REAL_EVIDENCE_2);
-                    loadStep(11);
+                    loadStep(9);
                 } else {
                     localAttempts--;
                     if (localAttempts > 0) {
@@ -539,18 +414,18 @@
                     } else {
                         passwordSuccess = false;
                         if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_3.name)) addEvidence(FAKE_EVIDENCE_3);
-                        loadStep(11);
+                        loadStep(9);
                     }
                 }
                 input.value = '';
             };
             if (submitBtn) submitBtn.onclick = check;
         }
-        else if (step === 11) {
+        else if (s === 9) {
             const continueBtn = document.getElementById('continueAfterPwdBtn');
-            if (continueBtn) continueBtn.onclick = () => loadStep(12);
+            if (continueBtn) continueBtn.onclick = () => loadStep(10);
         }
-        else if (step === 12) {
+        else if (s === 10) {
             const finishBtn = document.getElementById('finishBtn');
             if (finishBtn) finishBtn.onclick = () => finishAndSave();
         }
@@ -563,6 +438,7 @@
             redirectToMain();
             return;
         }
+        initOptions();
         loadStep(0);
         document.getElementById('viewEvidenceBtn').addEventListener('click', () => {
             document.getElementById('evidenceModal').style.display = 'flex';
