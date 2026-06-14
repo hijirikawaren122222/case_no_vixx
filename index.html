@@ -14,14 +14,16 @@
             <h1>Case No VIXX</h1>
             <p>黑疫調查檔案 · 1944</p>
         </div>
-        <button id="startBtn" class="btn-primary glow">開始調查</button>
+        <div class="center-btn">
+            <button id="startBtn" class="btn-primary">開始調查</button>
+        </div>
         <footer>點擊進入戰時檔案</footer>
     </div>
 
     <!-- 視圖2：世界觀介紹 -->
     <div id="worldView" class="view">
         <div class="title">
-            <h1>📜 背景</h1>
+            <h1>背景</h1>
         </div>
         <div class="text-box">
             <p>1944年。戰火包圍的某地，一種未知傳染病正在平民中迅速蔓延。</p>
@@ -32,34 +34,29 @@
             <p>他們必須突破信息封鎖與物資匱乏，各自深入險境，蒐集證物，最終在圓桌會議上拼湊出被掩埋的真相。</p>
             <p><strong>這不是天災。</strong><br>但誰在掩蓋？誰在說謊？<br>真相只有一個。</p>
         </div>
-        <button id="worldContinueBtn" class="btn-primary">繼續</button>
+        <div class="center-btn">
+            <button id="worldContinueBtn" class="btn-primary">繼續</button>
+        </div>
     </div>
 
-    <!-- 視圖3：小組討論劇情 -->
+    <!-- 視圖3：小組討論劇情（Galgame風格對話框） -->
     <div id="debriefView" class="view">
         <div class="title">
-            <h1>🏚️ 會議 · 廢棄修道院</h1>
+            <h1>會議 · 廢棄修道院</h1>
         </div>
-        <div class="story-text">
-            <div class="dialogue"><strong>Leo</strong>（左手握著懷表，放回西裝內袋）：「病死者的肺部組織樣本分析基本完成了。不是自然突變。基因序列中有一段非編碼插入片段，指向實驗室人工干預。」</div>
-            <div class="dialogue"><strong>N</strong>（以右手拇指輕輕轉動懷表表殼）：「所以從一開始就不是天災。」</div>
-            <div class="dialogue"><strong>Ken</strong>（視線未離開攜帶電腦螢幕）：「我截到一段編碼電文。加密等級很高，但部分已可解讀。3月15日……D-7項目發生洩漏。」</div>
-            <div class="dialogue"><strong>Hyuk</strong>（從風衣暗袋抽出幾張照片，平鋪在木箱上）：「工廠北側排水溝盡頭，距離通風口最近的圍牆位置。金屬邊緣有不規則腐蝕，大量化學灼燒痕跡。」</div>
-            <div class="dialogue">短暫的沉默。</div>
-            <div class="dialogue"><strong>N</strong>（收起懷表）：「各自確認手上的行動路徑。Leo，繼續分析剩餘的生物樣本。Ken，把那段電文完整解開，查查D-7到底是什麼。Hyuk，再去工廠周邊一趟，這次注意排水溝下游的水質狀況。」</div>
-            <div class="dialogue"><strong>Leo</strong>：「天亮前回來。」</div>
-            <div class="dialogue"><strong>Ken</strong>（嘴角微微一扯）：「如果我三小時沒消息，你們可以把我從機房拖走。」</div>
-            <div class="dialogue"><strong>Hyuk</strong>（把風衣裹緊）：「又在說這種話。從來沒準過。」</div>
-            <div class="dialogue"><strong>N</strong>（低聲）：「出發。」</div>
+        <div class="dialogue-container" id="dialogueContainer">
+            <!-- 對話會由js動態生成，以確保順序和風格一致，也可以直接寫html -->
         </div>
         <div class="action-note">四人起身，各自散入走廊。遠處傳來宵禁巡邏隊的腳步聲。<br>現在，選擇你要首先調查的角色。</div>
-        <button id="toRoleSelectBtn" class="btn-primary">選擇調查角色</button>
+        <div class="center-btn">
+            <button id="toRoleSelectBtn" class="btn-primary">選擇調查角色</button>
+        </div>
     </div>
 
     <!-- 視圖4：角色選擇主界面 -->
     <div id="mainView" class="view">
         <div class="title">
-            <h1>🕵️ 調查小組</h1>
+            <h1>調查小組</h1>
         </div>
         <div class="role-grid" id="roleCardsArea"></div>
         <div class="info-note">
@@ -69,8 +66,8 @@
             ※ 所有成員調查完畢後，圓桌會議將自動解鎖。
         </div>
         <div class="flex-buttons">
-            <button id="resetProgressBtn" class="btn-secondary">⟳ 重置進度</button>
-            <button id="gameHelpBtn" class="btn-secondary">📖 遊戲說明</button>
+            <button id="resetProgressBtn" class="btn-secondary">重置進度</button>
+            <button id="gameHelpBtn" class="btn-secondary">遊戲說明</button>
         </div>
         <footer>Case No VIXX — 真相只會愈挖愈深</footer>
     </div>
@@ -78,6 +75,47 @@
 
 <script src="common.js"></script>
 <script>
+    // 對話資料 (一人一句，Galgame風格)
+    const dialogues = [
+        { speaker: "Leo", text: "左手握著懷表，放回西裝內袋：「病死者的肺部組織樣本分析基本完成了。不是自然突變。基因序列中有一段非編碼插入片段，指向實驗室人工干預。」" },
+        { speaker: "N", text: "以右手拇指輕輕轉動懷表表殼：「所以從一開始就不是天災。」" },
+        { speaker: "Ken", text: "視線未離開攜帶電腦螢幕：「我截到一段編碼電文。加密等級很高，但部分已可解讀。3月15日……D-7項目發生洩漏。」" },
+        { speaker: "Hyuk", text: "從風衣暗袋抽出幾張照片，平鋪在木箱上：「工廠北側排水溝盡頭，距離通風口最近的圍牆位置。金屬邊緣有不規則腐蝕，大量化學灼燒痕跡。」" },
+        { speaker: null, text: "短暫的沉默。" },
+        { speaker: "N", text: "收起懷表：「各自確認手上的行動路徑。Leo，繼續分析剩餘的生物樣本。Ken，把那段電文完整解開，查查D-7到底是什麼。Hyuk，再去工廠周邊一趟，這次注意排水溝下游的水質狀況。」" },
+        { speaker: "Leo", text: "點頭：「天亮前回來。」" },
+        { speaker: "Ken", text: "抬頭，嘴角微微一扯：「如果我三小時沒消息，你們可以把我從機房拖走。」" },
+        { speaker: "Hyuk", text: "把風衣裹緊：「又在說這種話。從來沒準過。」" },
+        { speaker: "N", text: "低聲：「出發。」" }
+    ];
+
+    function renderDialogues() {
+        const container = document.getElementById('dialogueContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        for (let d of dialogues) {
+            const bubble = document.createElement('div');
+            bubble.className = 'dialogue-bubble';
+            if (d.speaker) {
+                const nameSpan = document.createElement('div');
+                nameSpan.className = 'speaker-name';
+                nameSpan.textContent = d.speaker;
+                bubble.appendChild(nameSpan);
+                const textSpan = document.createElement('div');
+                textSpan.className = 'speaker-text';
+                textSpan.textContent = d.text;
+                bubble.appendChild(textSpan);
+            } else {
+                // 旁白或沉默
+                const textSpan = document.createElement('div');
+                textSpan.className = 'narration-text';
+                textSpan.textContent = d.text;
+                bubble.appendChild(textSpan);
+            }
+            container.appendChild(bubble);
+        }
+    }
+
     // 視圖切換邏輯
     const splash = document.getElementById('splashView');
     const world = document.getElementById('worldView');
@@ -90,6 +128,8 @@
         else if (viewId === 'world') world.classList.add('active');
         else if (viewId === 'debrief') debrief.classList.add('active');
         else if (viewId === 'main') main.classList.add('active');
+        // 每次顯示討論區時重新渲染對話（確保新鮮）
+        if (viewId === 'debrief') renderDialogues();
     }
 
     document.getElementById('startBtn').onclick = () => showView('world');
@@ -127,7 +167,6 @@
                 </div>
             `;
         }).join('');
-        // 綁定點擊事件
         document.querySelectorAll('.role-card').forEach(card => {
             card.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -136,16 +175,13 @@
                 if (progress.completed[role]) {
                     alert(`${role} 已完成調查，無法再次進入。`);
                 } else {
-                    // 跳轉到對應角色的劇情頁面 (需自行創建 story_n.html, story_leo.html ...)
                     window.location.href = `story_${role.toLowerCase()}.html`;
                 }
             });
         });
     }
 
-    // 初次加載時更新主界面（如果主界面已顯示）
     if (document.getElementById('mainView')) updateRoleUI();
-    // 監聽儲存變更 (例如從其他頁面返回時)
     window.addEventListener('storage', (e) => {
         if (e.key === STORAGE_KEY && document.getElementById('mainView').classList.contains('active')) {
             updateRoleUI();
