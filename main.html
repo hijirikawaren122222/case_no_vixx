@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Case No VIXX — 調查小組</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="game-container">
+    <div class="title">
+        <h1>調查小組</h1>
+    </div>
+    <div class="role-grid" id="roleCardsArea"></div>
+    <div class="info-note">
+        ※ 點擊角色卡片，進入該成員的調查行動。<br>
+        ※ 每位成員的調查相互獨立，可任意順序進行。<br>
+        ※ 完成一名成員後，其狀態將變為【已完成】。<br>
+        ※ 所有成員調查完畢後，圓桌會議將自動解鎖。
+    </div>
+    <div class="flex-buttons">
+        <button id="resetProgressBtn" class="btn-secondary">重置進度</button>
+        <button id="gameHelpBtn" class="btn-secondary">遊戲說明</button>
+    </div>
+    <footer>Case No VIXX — 真相只會愈挖愈深</footer>
+</div>
+
+<script src="common.js"></script>
+<script>
+    function updateRoleUI() {
+        const progress = loadProgress();
+        const roles = [
+            { id: 'N', name: 'N', title: '心理側寫師' },
+            { id: 'Leo', name: 'Leo', title: '科學搜查刑警' },
+            { id: 'Ken', name: 'Ken', title: '黑客' },
+            { id: 'Hyuk', name: 'Hyuk', title: '私家偵探' }
+        ];
+        const container = document.getElementById('roleCardsArea');
+        if (!container) return;
+        container.innerHTML = roles.map(r => {
+            const completed = progress.completed[r.id];
+            return `
+                <div class="role-card" data-role="${r.id}">
+                    <div class="role-name">${r.name}</div>
+                    <div class="role-title">${r.title}</div>
+                    <div class="status ${completed ? 'status-complete' : ''}">【${completed ? '已完成' : '未開始'}】</div>
+                </div>
+            `;
+        }).join('');
+        document.querySelectorAll('.role-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const role = card.dataset.role;
+                const progress = loadProgress();
+                if (progress.completed[role]) {
+                    alert(`${role} 已完成調查，無法再次進入。`);
+                } else {
+                    window.location.href = `story_${role.toLowerCase()}.html`;
+                }
+            });
+        });
+    }
+
+    document.getElementById('resetProgressBtn').onclick = () => {
+        resetAllProgress();
+        updateRoleUI();
+        alert('所有調查進度已重置。');
+    };
+    document.getElementById('gameHelpBtn').onclick = () => {
+        alert('遊戲說明：\n\n1. 四位調查員需分別完成獨立調查。\n2. 調查過程中請謹慎選擇或解開謎題，影響能否獲得真實證物。\n3. 所有成員完成後，將進入圓桌會議，從證物中推斷真相。\n4. 每次選擇都無法重來，請仔細閱讀線索。\n\n本遊戲無任何真實政治指涉，純屬虛構。');
+    };
+
+    updateRoleUI();
+    window.addEventListener('storage', (e) => {
+        if (e.key === STORAGE_KEY) updateRoleUI();
+    });
+</script>
+</body>
+</html>
