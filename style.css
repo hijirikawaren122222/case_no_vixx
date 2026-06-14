@@ -74,7 +74,6 @@ body {
     box-shadow: 0 6px 12px rgba(0,0,0,0.3);
 }
 
-/* 對話框容器 - 獨立氣泡 */
 .dialogue-container {
     display: flex;
     flex-direction: column;
@@ -99,6 +98,11 @@ body {
     color: #e6eefa;
     line-height: 1.5;
     font-size: 0.95rem;
+}
+/* 動作描述：星號內的文字為灰色 */
+.speaker-text .action {
+    color: #aaaaaa;
+    font-style: normal;
 }
 .narration-text {
     color: #b9c7d4;
