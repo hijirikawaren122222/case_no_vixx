@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>N 的調查 · Case No VIXX</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 覆蓋/補充樣式，保留原風格且不影響主樣式 */
+        .story-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .dialogue-container {
+            margin: 1rem 0;
+        }
+        .puzzle-area {
+            background: #0b0e16cc;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            margin: 1.5rem 0;
+            border-left: 4px solid #c6a15b;
+        }
+        .puzzle-area input {
+            width: 100%;
+            padding: 0.8rem;
+            background: #1e232e;
+            border: 1px solid #7c8aa0;
+            color: #eef2f5;
+            border-radius: 2rem;
+            margin: 0.5rem 0;
+            font-size: 1rem;
+        }
+        .attempts-left {
+            font-size: 0.8rem;
+            color: #b9c7d4;
+            margin-top: 0.3rem;
+        }
+        .feedback {
+            margin-top: 0.8rem;
+            padding: 0.5rem;
+            border-radius: 1rem;
+        }
+        .correct-feedback { color: #a3e0a0; }
+        .wrong-feedback { color: #e0a0a0; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #1a1f29;
+            border-radius: 1.8rem;
+            max-width: 500px;
+            width: 90%;
+            padding: 1.5rem;
+            border: 1px solid #b48c48;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .evidence-item {
+            background: #00000055;
+            margin: 0.8rem 0;
+            padding: 0.8rem;
+            border-radius: 1rem;
+            border-left: 3px solid #dbb87c;
+        }
+        .evidence-title {
+            font-weight: bold;
+            color: #ecd9b4;
+        }
+        .evidence-desc {
+            font-size: 0.85rem;
+            margin-top: 0.3rem;
+            white-space: pre-line;
+        }
+        .close-modal {
+            background: #4c5a6e;
+            border: none;
+            margin-top: 1rem;
+        }
+        .flex-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container story-container">
+    <!-- 動態劇情區塊（所有對話、解謎都放在這裡） -->
+    <div id="storyContent"></div>
+
+    <!-- 底部按鈕列 -->
+    <div class="flex-buttons" style="margin-top: 2rem;">
+        <button id="viewEvidenceBtn" class="btn-secondary">檢視證物</button>
+        <button id="abandonBtn" class="btn-secondary">放棄調查</button>
+    </div>
+</div>
+
+<!-- 證物模態框 -->
+<div id="evidenceModal" class="modal">
+    <div class="modal-content">
+        <h3>目前證物清單</h3>
+        <div id="evidenceListModal"></div>
+        <button id="closeModalBtn" class="close-modal">關閉</button>
+    </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+    // ---------- 全域變數 ----------
+    let currentScene = 0;          // 0:場景〇, 1:場景一開頭, 2:第一次選擇, 3:選擇正確後的對話, 4:第二次選擇, 5:密碼解謎, 6:結尾
+    let firstChoiceCorrect = false;
+    let secondChoiceCorrect = false;
+    let passwordSuccess = false;
+    let evidenceCollected = [];     // 存放證物物件 { name, description, isReal }
+    let attemptsLeft = 3;
+    let puzzleActive = false;
+
+    // 證物定義（直接以物件形式）
+    const REAL_EVIDENCE_1 = {
+        name: "米哈烏的證詞錄音與簽名文件",
+        description: "證人：米哈烏·科瓦爾斯基，原 D-7 實驗室高級實驗助理\n證詞內容：\n- D-7 項目為生物武器研發，針對特定人種。\n- 1944 年 3 月 15 日，B 區發生高濃度活病毒洩漏。\n- 主管 K.B. 下令連夜焚燒所有污染物品及三具屍體。\n- 事後被要求統一對外稱「流感」。\n證人簽名：米哈烏·科瓦爾斯基（附手印）\n錄音時間：1944 年 X 月 X 日",
+        isReal: true
+    };
+    const REAL_EVIDENCE_2 = {
+        name: "主管 K.B. 的私人筆記",
+        description: "1944 年 3 月 14 日：收到指示，加快 D-7 的實戰測試。計劃下週在三個村莊進行水污染模擬。\n1944 年 3 月 15 日：災難。B 區洩漏。已下令全面銷毀物證。\n1944 年 3 月 16 日：焚燒工作完成。統一對外口徑為斑疹傷寒。\n1944 年 3 月 20 日：抵抗組織似乎聽到風聲。必須轉移焦點。已準備數封信件。",
+        isReal: true
+    };
+    const FAKE_EVIDENCE_1 = {
+        name: "匿名檢舉信",
+        description: "「致有關方面：\n我親眼見到抵抗組織的一名頭目，代號『烏鴉』，於 3 月 20 日從 D-7 實驗室後門帶出一個金屬箱子，裡面裝的是病毒樣本。他們打算嫁禍給軍方。\n請務必調查此人。\n一個愛國者」",
+        isReal: false
+    };
+    const FAKE_EVIDENCE_2 = {
+        name: "虛假死亡統計表（殘頁）",
+        description: "「…截至 4 月 1 日，D-7 區域感染人數 312，死亡 7 人，死亡率 2.2%。疫情已受控，無需特別措施。…此數據上報。」",
+        isReal: false
+    };
+    const FAKE_EVIDENCE_3 = {
+        name: "偽造的會議記錄",
+        description: "1944 年 3 月 10 日，D-7 項目例會紀要：\n主題：評估針對敵後游擊隊的生物製劑效果。\n結論：準備在 4 月進行田野試驗。",
+        isReal: false
+    };
+
+    // 添加證物輔助函數
+    function addEvidence(ev) {
+        if (!evidenceCollected.some(e => e.name === ev.name)) {
+            evidenceCollected.push(ev);
+            updateEvidenceModal();
+        }
+    }
+
+    function updateEvidenceModal() {
+        const container = document.getElementById('evidenceListModal');
+        if (!container) return;
+        if (evidenceCollected.length === 0) {
+            container.innerHTML = '<p>尚無證物。</p>';
+            return;
+        }
+        container.innerHTML = evidenceCollected.map(ev => `
+            <div class="evidence-item">
+                <div class="evidence-title">${ev.name}</div>
+                <div class="evidence-desc">${ev.description.replace(/\n/g, '<br>')}</div>
+            </div>
+        `).join('');
+    }
+
+    // 儲存進度並離開
+    function finishAndSave() {
+        // 最終呼叫 markRoleComplete
+        const success = markRoleComplete('N', evidenceCollected);
+        if (success) {
+            alert('調查完成，證物已收錄。');
+        } else {
+            alert('錯誤：無法儲存進度，可能已完成過。');
+        }
+        window.location.href = 'index.html';
+    }
+
+    // 放棄調查
+    function abandon() {
+        if (confirm('確定要放棄調查嗎？進度不會儲存。')) {
+            window.location.href = 'index.html';
+        }
+    }
+
+    // 場景〇：前往安全屋
+    function renderScene0() {
+        return `
+            <div class="dialogue-container">
+                <div class="narration-text">凌晨一點二十分，抵抗組織聯絡員「烏鴉」帶我穿過三條被炸毀的街道。宵禁剛剛開始，遠處偶爾傳來巡邏隊的腳步聲。</div>
+                <div class="narration-text">我們在一棟廢棄裁縫店的衣櫃後面停下。烏鴉拉開暗門，露出向下的石階。煤油燈的氣味混著潮濕的霉味。</div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">烏鴉</span></div><div class="speaker-text">「人在下面，他叫米哈烏·科瓦爾斯基。戰前是華沙大學生物系的實驗員。三週前他自己找上我們，說知道 D-7 的秘密。但他一直不肯說全。」</div></div>
+                <div class="narration-text">我把懷表從馬甲口袋裡取出，握在手心。金屬的涼意讓我集中注意力。</div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「你守在門口，如果聽到我拍桌子三聲，就帶人進來。」</div></div>
+                <div class="narration-text">烏鴉沒有回答，只是把一把手槍遞給我。我拒絕了。審訊不是靠槍進行的。</div>
+            </div>
+            <div class="flex-buttons"><button id="nextSceneBtn" class="btn-primary">繼續</button></div>
+        `;
+    }
+
+    // 場景一開頭
+    function renderScene1Start() {
+        return `
+            <div class="dialogue-container">
+                <div class="narration-text">（走下樓梯，煤油燈的光照出一個中年男子蜷縮在木椅上。他穿著灰色毛衣，袖口起毛，左手虎口有舊繭。）</div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(走進地下室，把懷表放在桌上，沒有坐下，坐在他對面)</span></div><div class="speaker-text">「米哈烏·科瓦爾斯基。你左手虎口的繭，是長期抓握試管架留下的。戰前華沙大學微生物實驗室的人員名單裡，有你。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(身體一僵，不敢抬頭)</span></div><div class="speaker-text">「……那些都是過去的事了。我現在只是個倉庫管理員。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(沉默，右手拇指輕輕轉動懷表表殼。二十秒後，開口)</span></div><div class="speaker-text">「你結婚多久了？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(疑惑)</span></div><div class="speaker-text">「……十二年。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(語氣不變)</span></div><div class="speaker-text">「你女兒叫艾蓮娜，今年十歲。她喜歡畫畫。上次她畫了一幅向日葵，你太太把它貼在廚房冰箱上。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(猛地抬頭，驚慌)</span></div><div class="speaker-text">「你……你怎麼知道這些？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(平靜)</span></div><div class="speaker-text">「因為我在來之前，見過你太太。她說你已經三個月沒回家了。她很擔心你。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(嘴唇顫抖)</span></div><div class="speaker-text">「她……她們安全嗎？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(從口袋裡拿出一張摺疊的紙條，推過去)</span></div><div class="speaker-text">「這是她今天寫的。你自己看。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(顫抖著手打開，眼眶泛紅)</span></div><div class="speaker-text">「……她寫說有人送食物過去，還幫艾蓮娜找了老師。你到底是誰？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(將懷表輕輕推向桌子中央，金屬反光映在米哈烏臉上)</span></div><div class="speaker-text">「一個想幫你活下去的人。但你需要先幫我。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(沉默，手指不再抖，緊握成拳)</span></div><div class="speaker-text">「……好。你想知道什麼？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(身體微微前傾)</span></div><div class="speaker-text">「三月十五日，D-7 實驗室發生了什麼？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(低頭)</span></div><div class="speaker-text">「我說了，他們會殺我全家。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(語氣平穩)</span></div><div class="speaker-text">「你知道嗎？你的主管 K.B. 上週已經逃離了這個地區。他帶走了所有能帶走的錢，卻沒有通知任何下屬。你對他而言，從來就不是自己人。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(抬起頭，眼神變化)</span></div><div class="speaker-text">「……你說的對。我為什麼要替他保密？」</div></div>
+            </div>
+            <div class="flex-buttons"><button id="nextToChoice1Btn" class="btn-primary">繼續</button></div>
+        `;
+    }
+
+    // 第一次選擇畫面
+    function renderFirstChoice() {
+        return `
+            <div class="puzzle-area">
+                <p><strong>系統提示</strong>：米哈烏願意開口，但他仍有所保留。你決定怎麼做？</p>
+                <div class="flex-buttons">
+                    <button id="choice1_A" class="btn-primary">選項 A</button>
+                    <button id="choice1_B" class="btn-secondary">選項 B</button>
+                    <button id="choice1_C" class="btn-secondary">選項 C</button>
+                </div>
+                <div class="feedback" id="choiceFeedback"></div>
+            </div>
+            <div class="dialogue-container" id="hiddenDialogue" style="display:none;"></div>
+        `;
+    }
+
+    // 第二次選擇畫面（僅在第一次正確後出現）
+    function renderSecondChoice() {
+        return `
+            <div class="puzzle-area">
+                <p><strong>系統提示</strong>：米哈烏願意配合，你需要確保證詞具有法律效力。</p>
+                <div class="flex-buttons">
+                    <button id="choice2_A" class="btn-primary">選項 A</button>
+                    <button id="choice2_B" class="btn-secondary">選項 B</button>
+                    <button id="choice2_C" class="btn-secondary">選項 C</button>
+                </div>
+                <div class="feedback" id="choice2Feedback"></div>
+            </div>
+        `;
+    }
+
+    // 成功獲得證詞後的對話
+    function renderAfterFirstSuccess() {
+        return `
+            <div class="dialogue-container">
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(深吸一口氣)</span></div><div class="speaker-text">「D-7 是 1942 年開始的秘密項目。對外說是研究斑疹傷寒疫苗，但實際上……是在改造一種病毒，讓它只感染特定人種。主管 K.B. 說這是『為了戰爭勝利後的秩序維護』。我們實驗室有三個核心區域：A 區培育病毒，B 區做動物實驗，C 區保存樣本和檔案。三月十五日下午，B 區的搬運工人在換罐子的時候，把培養罐碰倒了。那罐子裡是高濃度的活體病毒，而且是氣溶膠型的。警報響了不到三十秒就停了——主管說不能引人注意。他命令我們立刻撤離，然後連夜把所有接觸過的器材、防護服和……死人，都拉到後山燒了。一共燒了多少？我清點過：四十七套防護服，三個鐵桶的廢料，還有……三具屍體。兩個是當時的操作員，一個是第二天發病的清潔工。主管說：『戰爭快結束了，只要拖到投降，就沒人會追查。如果有人問，就說是普通流感。』」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(平靜)</span></div><div class="speaker-text">「你願意把剛才說的錄下來，簽上名字，作為證詞嗎？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(點頭)</span></div><div class="speaker-text">「好。但我有一個條件——事成之後，我要帶著家人去瑞典。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(點頭)</span></div><div class="speaker-text">「我會安排。」</div></div>
+            </div>
+            <div class="flex-buttons"><button id="nextToSecondChoiceBtn" class="btn-primary">繼續</button></div>
+        `;
+    }
+
+    // 密碼解謎界面
+    function renderPasswordPuzzle() {
+        return `
+            <div class="puzzle-area">
+                <p><strong>密碼破譯</strong>：根據對話線索（洩漏日期、防護服數量等），推斷暗格的六位數密碼。</p>
+                <input type="text" id="pwdInput" placeholder="請輸入六位數字密碼" maxlength="6">
+                <div class="attempts-left">剩餘嘗試次數：${attemptsLeft}</div>
+                <button id="submitPwdBtn" class="btn-primary">確認密碼</button>
+                <div id="pwdFeedback" class="feedback"></div>
+            </div>
+        `;
+    }
+
+    // 場景三：自動獲得假證物
+    function renderScene3() {
+        let html = `<div class="dialogue-container">`;
+        if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_1.name)) {
+            html += `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(從衣服內襯裡拿出一封皺巴巴的信)</span></div><div class="speaker-text">「這是我前天在家門口發現的。不知道是誰塞的。我本來想扔掉，但是上面寫的東西……我覺得不太對。」</div></div>
+            <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(接過來，打開閱讀)</span></div><div class="speaker-text">「……」</div></div>`;
+            addEvidence(FAKE_EVIDENCE_1);
+        }
+        if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_2.name)) {
+            html += `<div class="narration-text">N 彎腰從地上撿起半張紙片。</div>
+            <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「這是什麼？」</div></div>
+            <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「哦，那是上週有人從門縫塞進來的另一張紙。上面寫的是……一些統計數字。我覺得假得很，就扔地上了。」</div></div>`;
+            addEvidence(FAKE_EVIDENCE_2);
+        }
+        html += `</div><div class="flex-buttons"><button id="finishBtn" class="btn-primary">完成調查</button></div>`;
+        return html;
+    }
+
+    // 結尾跳轉
+    function finishAndExit() {
+        finishAndSave();
+    }
+
+    // 渲染主流程
+    function renderScene(sceneIndex) {
+        const container = document.getElementById('storyContent');
+        if (!container) return;
+        switch(sceneIndex) {
+            case 0: container.innerHTML = renderScene0(); break;
+            case 1: container.innerHTML = renderScene1Start(); break;
+            case 2: container.innerHTML = renderFirstChoice(); bindFirstChoice(); break;
+            case 3: container.innerHTML = renderAfterFirstSuccess(); bindNextToSecondChoice(); break;
+            case 4: container.innerHTML = renderSecondChoice(); bindSecondChoice(); break;
+            case 5: container.innerHTML = renderPasswordPuzzle(); bindPasswordPuzzle(); break;
+            case 6: container.innerHTML = renderScene3(); bindFinish(); break;
+            default: break;
+        }
+    }
+
+    // 事件綁定
+    function bindNextScene() { document.getElementById('nextSceneBtn')?.addEventListener('click', () => renderScene(1)); }
+    function bindNextToChoice1() { document.getElementById('nextToChoice1Btn')?.addEventListener('click', () => renderScene(2)); }
+    function bindFirstChoice() {
+        document.getElementById('choice1_A')?.addEventListener('click', () => handleFirstChoice(true));
+        document.getElementById('choice1_B')?.addEventListener('click', () => handleFirstChoice(false));
+        document.getElementById('choice1_C')?.addEventListener('click', () => handleFirstChoice(false));
+    }
+    function handleFirstChoice(isCorrect) {
+        if (isCorrect) {
+            firstChoiceCorrect = true;
+            document.getElementById('choiceFeedback').innerHTML = '<span class="correct-feedback">米哈烏開始詳細說明…</span>';
+            setTimeout(() => { renderScene(3); }, 1000);
+        } else {
+            firstChoiceCorrect = false;
+            document.getElementById('choiceFeedback').innerHTML = '<span class="wrong-feedback">米哈烏嚇得閉口不言，審訊失敗。</span>';
+            // 跳過場景二、無法獲得真證物，直接到場景三
+            setTimeout(() => { 
+                // 確保沒有真證物
+                renderScene(6); 
+            }, 1500);
+        }
+    }
+    function bindNextToSecondChoice() {
+        document.getElementById('nextToSecondChoiceBtn')?.addEventListener('click', () => renderScene(4));
+    }
+    function bindSecondChoice() {
+        document.getElementById('choice2_A')?.addEventListener('click', () => handleSecondChoice(true));
+        document.getElementById('choice2_B')?.addEventListener('click', () => handleSecondChoice(false));
+        document.getElementById('choice2_C')?.addEventListener('click', () => handleSecondChoice(false));
+    }
+    function handleSecondChoice(isCorrect) {
+        if (isCorrect) {
+            secondChoiceCorrect = true;
+            addEvidence(REAL_EVIDENCE_1);
+            document.getElementById('choice2Feedback').innerHTML = '<span class="correct-feedback">獲得米哈烏的證詞錄音與簽名文件。</span>';
+            setTimeout(() => { renderScene(5); }, 1000);
+        } else {
+            secondChoiceCorrect = false;
+            document.getElementById('choice2Feedback').innerHTML = '<span class="wrong-feedback">米哈烏拒絕簽字，證詞無效。</span>';
+            setTimeout(() => { renderScene(6); }, 1500);
+        }
+    }
+    function bindPasswordPuzzle() {
+        attemptsLeft = 3;
+        const submitBtn = document.getElementById('submitPwdBtn');
+        const input = document.getElementById('pwdInput');
+        const feedback = document.getElementById('pwdFeedback');
+        submitBtn?.addEventListener('click', () => {
+            const val = input.value.trim();
+            if (val === '031547') {
+                passwordSuccess = true;
+                addEvidence(REAL_EVIDENCE_2);
+                feedback.innerHTML = '<span class="correct-feedback">密碼正確！獲得主管 K.B. 的私人筆記。</span>';
+                setTimeout(() => { renderScene(6); }, 1500);
+            } else {
+                attemptsLeft--;
+                if (attemptsLeft > 0) {
+                    feedback.innerHTML = `<span class="wrong-feedback">密碼錯誤，剩餘次數：${attemptsLeft}</span>`;
+                    document.querySelector('.attempts-left').innerText = `剩餘嘗試次數：${attemptsLeft}`;
+                } else {
+                    feedback.innerHTML = '<span class="wrong-feedback">警報觸發！暗格被銷毀，無法獲得筆記。</span>';
+                    // 添加一個假證物3
+                    if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_3.name)) {
+                        addEvidence(FAKE_EVIDENCE_3);
+                    }
+                    setTimeout(() => { renderScene(6); }, 1500);
+                }
+            }
+            input.value = '';
+        });
+    }
+    function bindFinish() {
+        document.getElementById('finishBtn')?.addEventListener('click', () => finishAndSave());
+    }
+
+    // 初始載入時檢查是否已完成
+    window.addEventListener('load', () => {
+        const progress = loadProgress();
+        if (progress.completed.N) {
+            alert('你已經完成過 N 的調查，無法再次進入。');
+            redirectToMain();
+            return;
+        }
+        renderScene(0);
+        // 共用按鈕
+        document.getElementById('viewEvidenceBtn').addEventListener('click', () => {
+            document.getElementById('evidenceModal').style.display = 'flex';
+            updateEvidenceModal();
+        });
+        document.getElementById('closeModalBtn').addEventListener('click', () => {
+            document.getElementById('evidenceModal').style.display = 'none';
+        });
+        document.getElementById('abandonBtn').addEventListener('click', abandon);
+        // 重新綁定場景0的事件
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'nextSceneBtn') renderScene(1);
+            if (e.target.id === 'nextToChoice1Btn') renderScene(2);
+        });
+    });
+</script>
+</body>
+</html>
