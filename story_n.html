@@ -6,7 +6,7 @@
     <title>N 的調查 · Case No VIXX</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* 覆蓋/補充樣式，保留原風格且不影響主樣式 */
+        /* 補充樣式 */
         .story-container {
             max-width: 800px;
             margin: 0 auto;
@@ -48,7 +48,7 @@
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -56,7 +56,7 @@
         .modal-content {
             background: #1a1f29;
             border-radius: 1.8rem;
-            max-width: 500px;
+            max-width: 550px;
             width: 90%;
             padding: 1.5rem;
             border: 1px solid #b48c48;
@@ -79,7 +79,13 @@
             margin-top: 0.3rem;
             white-space: pre-line;
         }
-        .close-modal {
+        .evidence-note {
+            color: #aaaaaa;
+            font-style: italic;
+            margin-top: 0.3rem;
+            font-size: 0.8rem;
+        }
+        .close-modal, .continue-btn {
             background: #4c5a6e;
             border: none;
             margin-top: 1rem;
@@ -89,22 +95,26 @@
             justify-content: center;
             gap: 1rem;
             margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .option-btn {
+            min-width: 120px;
+        }
+        .disabled-option {
+            opacity: 0.5;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 <div class="game-container story-container">
-    <!-- 動態劇情區塊（所有對話、解謎都放在這裡） -->
     <div id="storyContent"></div>
-
-    <!-- 底部按鈕列 -->
     <div class="flex-buttons" style="margin-top: 2rem;">
         <button id="viewEvidenceBtn" class="btn-secondary">檢視證物</button>
         <button id="abandonBtn" class="btn-secondary">放棄調查</button>
     </div>
 </div>
 
-<!-- 證物模態框 -->
 <div id="evidenceModal" class="modal">
     <div class="modal-content">
         <h3>目前證物清單</h3>
@@ -116,42 +126,47 @@
 <script src="common.js"></script>
 <script>
     // ---------- 全域變數 ----------
-    let currentScene = 0;          // 0:場景〇, 1:場景一開頭, 2:第一次選擇, 3:選擇正確後的對話, 4:第二次選擇, 5:密碼解謎, 6:結尾
+    let currentStep = 0;           // 0:場景0, 1:場景1開頭, 2:第一次選擇, 3:第一次選擇結果+繼續, 4:成功後的對話, 5:第二次選擇, 6:第二次選擇結果+繼續, 7:密碼前對話, 8:密碼輸入, 9:場景三假證物, 10:結束
     let firstChoiceCorrect = false;
     let secondChoiceCorrect = false;
     let passwordSuccess = false;
-    let evidenceCollected = [];     // 存放證物物件 { name, description, isReal }
+    let evidenceCollected = [];     
     let attemptsLeft = 3;
-    let puzzleActive = false;
+    let selectedFirst = false;     // 是否已做第一次選擇
+    let selectedSecond = false;
 
-    // 證物定義（直接以物件形式）
+    // ----- 證物定義（含 N 的灰色獨白）-----
     const REAL_EVIDENCE_1 = {
         name: "米哈烏的證詞錄音與簽名文件",
         description: "證人：米哈烏·科瓦爾斯基，原 D-7 實驗室高級實驗助理\n證詞內容：\n- D-7 項目為生物武器研發，針對特定人種。\n- 1944 年 3 月 15 日，B 區發生高濃度活病毒洩漏。\n- 主管 K.B. 下令連夜焚燒所有污染物品及三具屍體。\n- 事後被要求統一對外稱「流感」。\n證人簽名：米哈烏·科瓦爾斯基（附手印）\n錄音時間：1944 年 X 月 X 日",
+        note: "（N 的筆記：米哈烏的供詞細節完整，與現場焚燒痕跡吻合。他的恐懼是真實的，不像偽造。這份證詞可以作為核心證據之一。）",
         isReal: true
     };
     const REAL_EVIDENCE_2 = {
         name: "主管 K.B. 的私人筆記",
         description: "1944 年 3 月 14 日：收到指示，加快 D-7 的實戰測試。計劃下週在三個村莊進行水污染模擬。\n1944 年 3 月 15 日：災難。B 區洩漏。已下令全面銷毀物證。\n1944 年 3 月 16 日：焚燒工作完成。統一對外口徑為斑疹傷寒。\n1944 年 3 月 20 日：抵抗組織似乎聽到風聲。必須轉移焦點。已準備數封信件。",
+        note: "（N 的揣測：筆跡與 K.B. 其他文件一致。日期連續，語氣從從容轉為慌亂。3月20日的「數封信件」很可能就是我們收到的匿名檢舉信。這是直接指向掩蓋行為的鐵證。）",
         isReal: true
     };
     const FAKE_EVIDENCE_1 = {
         name: "匿名檢舉信",
         description: "「致有關方面：\n我親眼見到抵抗組織的一名頭目，代號『烏鴉』，於 3 月 20 日從 D-7 實驗室後門帶出一個金屬箱子，裡面裝的是病毒樣本。他們打算嫁禍給軍方。\n請務必調查此人。\n一個愛國者」",
+        note: "（N 的觀察：紙張異常光滑，不像佔領區常見紙質。3月20日實驗室後門已被封死。字跡過於工整，毫無急迫感。這封信很可能是為了轉移焦點而偽造的。）",
         isReal: false
     };
     const FAKE_EVIDENCE_2 = {
         name: "虛假死亡統計表（殘頁）",
         description: "「…截至 4 月 1 日，D-7 區域感染人數 312，死亡 7 人，死亡率 2.2%。疫情已受控，無需特別措施。…此數據上報。」",
+        note: "（N 的分析：統計從3月20日開始，刻意忽略洩漏初期的死亡高峰。民間記錄死亡人數遠超過7人。紙張水印為1945年，與現在年份矛盾。這是事後偽造的報告。）",
         isReal: false
     };
     const FAKE_EVIDENCE_3 = {
         name: "偽造的會議記錄",
         description: "1944 年 3 月 10 日，D-7 項目例會紀要：\n主題：評估針對敵後游擊隊的生物製劑效果。\n結論：準備在 4 月進行田野試驗。",
+        note: "（N 的質疑：會議記錄格式不符當時軍方標準。簽名人『W. Schmidt』從未在實驗室人員名單中出現。內容過於聳動，反而像刻意栽贓。）",
         isReal: false
     };
 
-    // 添加證物輔助函數
     function addEvidence(ev) {
         if (!evidenceCollected.some(e => e.name === ev.name)) {
             evidenceCollected.push(ev);
@@ -170,13 +185,12 @@
             <div class="evidence-item">
                 <div class="evidence-title">${ev.name}</div>
                 <div class="evidence-desc">${ev.description.replace(/\n/g, '<br>')}</div>
+                <div class="evidence-note">${ev.note || ''}</div>
             </div>
         `).join('');
     }
 
-    // 儲存進度並離開
     function finishAndSave() {
-        // 最終呼叫 markRoleComplete
         const success = markRoleComplete('N', evidenceCollected);
         if (success) {
             alert('調查完成，證物已收錄。');
@@ -186,14 +200,13 @@
         window.location.href = 'index.html';
     }
 
-    // 放棄調查
     function abandon() {
         if (confirm('確定要放棄調查嗎？進度不會儲存。')) {
             window.location.href = 'index.html';
         }
     }
 
-    // 場景〇：前往安全屋
+    // ----- 各場景渲染函數 -----
     function renderScene0() {
         return `
             <div class="dialogue-container">
@@ -204,11 +217,10 @@
                 <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「你守在門口，如果聽到我拍桌子三聲，就帶人進來。」</div></div>
                 <div class="narration-text">烏鴉沒有回答，只是把一把手槍遞給我。我拒絕了。審訊不是靠槍進行的。</div>
             </div>
-            <div class="flex-buttons"><button id="nextSceneBtn" class="btn-primary">繼續</button></div>
+            <div class="flex-buttons"><button id="nextStepBtn" class="btn-primary">繼續</button></div>
         `;
     }
 
-    // 場景一開頭
     function renderScene1Start() {
         return `
             <div class="dialogue-container">
@@ -230,42 +242,36 @@
                 <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(語氣平穩)</span></div><div class="speaker-text">「你知道嗎？你的主管 K.B. 上週已經逃離了這個地區。他帶走了所有能帶走的錢，卻沒有通知任何下屬。你對他而言，從來就不是自己人。」</div></div>
                 <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(抬起頭，眼神變化)</span></div><div class="speaker-text">「……你說的對。我為什麼要替他保密？」</div></div>
             </div>
-            <div class="flex-buttons"><button id="nextToChoice1Btn" class="btn-primary">繼續</button></div>
+            <div class="flex-buttons"><button id="nextStepBtn" class="btn-primary">繼續</button></div>
         `;
     }
 
-    // 第一次選擇畫面
     function renderFirstChoice() {
         return `
             <div class="puzzle-area">
                 <p><strong>系統提示</strong>：米哈烏願意開口，但他仍有所保留。你決定怎麼做？</p>
                 <div class="flex-buttons">
-                    <button id="choice1_A" class="btn-primary">選項 A</button>
-                    <button id="choice1_B" class="btn-secondary">選項 B</button>
-                    <button id="choice1_C" class="btn-secondary">選項 C</button>
+                    <button id="choice1_A" class="btn-primary option-btn">慢慢說。你太太和女兒在等你回家。</button>
+                    <button id="choice1_B" class="btn-secondary option-btn">病毒代號是什麼？K.B. 的全名？</button>
+                    <button id="choice1_C" class="btn-secondary option-btn">不說的話，你家人也保不住。</button>
                 </div>
-                <div class="feedback" id="choiceFeedback"></div>
+                <div id="choiceFeedback" class="feedback"></div>
             </div>
-            <div class="dialogue-container" id="hiddenDialogue" style="display:none;"></div>
         `;
     }
 
-    // 第二次選擇畫面（僅在第一次正確後出現）
-    function renderSecondChoice() {
+    function renderFirstChoiceResult(isCorrect) {
+        const msg = isCorrect 
+            ? '<span class="correct-feedback">米哈烏深吸一口氣，開始緩緩述說細節…</span>' 
+            : '<span class="wrong-feedback">米哈烏嚇得縮成一團，閉口不言。審訊失敗。</span>';
         return `
             <div class="puzzle-area">
-                <p><strong>系統提示</strong>：米哈烏願意配合，你需要確保證詞具有法律效力。</p>
-                <div class="flex-buttons">
-                    <button id="choice2_A" class="btn-primary">選項 A</button>
-                    <button id="choice2_B" class="btn-secondary">選項 B</button>
-                    <button id="choice2_C" class="btn-secondary">選項 C</button>
-                </div>
-                <div class="feedback" id="choice2Feedback"></div>
+                <p>${msg}</p>
+                <div class="flex-buttons"><button id="continueAfterChoiceBtn" class="btn-primary">繼續</button></div>
             </div>
         `;
     }
 
-    // 成功獲得證詞後的對話
     function renderAfterFirstSuccess() {
         return `
             <div class="dialogue-container">
@@ -274,11 +280,48 @@
                 <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span><span class="action">(點頭)</span></div><div class="speaker-text">「好。但我有一個條件——事成之後，我要帶著家人去瑞典。」</div></div>
                 <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(點頭)</span></div><div class="speaker-text">「我會安排。」</div></div>
             </div>
-            <div class="flex-buttons"><button id="nextToSecondChoiceBtn" class="btn-primary">繼續</button></div>
+            <div class="flex-buttons"><button id="nextStepBtn" class="btn-primary">繼續</button></div>
         `;
     }
 
-    // 密碼解謎界面
+    function renderSecondChoice() {
+        return `
+            <div class="puzzle-area">
+                <p><strong>系統提示</strong>：米哈烏願意配合，你需要確保證詞具有法律效力。</p>
+                <div class="flex-buttons">
+                    <button id="choice2_A" class="btn-primary option-btn">拿出錄音筆和標準證詞文件，請他簽名並錄音。</button>
+                    <button id="choice2_B" class="btn-secondary option-btn">口頭承諾，只用筆記記錄。</button>
+                    <button id="choice2_C" class="btn-secondary option-btn">讓他先寫關鍵詞在廢紙上，說回去再整理。</button>
+                </div>
+                <div id="choice2Feedback" class="feedback"></div>
+            </div>
+        `;
+    }
+
+    function renderSecondChoiceResult(isCorrect) {
+        const msg = isCorrect
+            ? '<span class="correct-feedback">米哈烏簽署文件並錄音。獲得證詞。</span>'
+            : '<span class="wrong-feedback">米哈烏感覺你沒有誠意，拒絕簽字。證詞無效。</span>';
+        return `
+            <div class="puzzle-area">
+                <p>${msg}</p>
+                <div class="flex-buttons"><button id="continueAfterChoice2Btn" class="btn-primary">繼續</button></div>
+            </div>
+        `;
+    }
+
+    function renderPasswordIntro() {
+        return `
+            <div class="dialogue-container">
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(走出地下室，對 Hyuk 發送無線電)</span></div><div class="speaker-text">「相爀，我需要你幫我進入工廠二樓，K.B. 的辦公室。米哈烏說暗格在書架第三層，後面有一個金屬盒。位置圖我馬上傳給你。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">Hyuk</span><span class="action">(無線電回復，壓低聲音)</span></div><div class="speaker-text">「我已經在工廠外圍了。守衛換班還有不到四分鐘。你有密碼嗎？」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span><span class="action">(看著米哈烏畫的紙條)</span></div><div class="speaker-text">「米哈烏只記得和日期有關。他說主管辦公室掛著一本日曆，三月十五日被紅筆圈起來。另外，他見過主管在本子上寫下一串數字，似乎和防護服數量有關。密碼可能是六位數。」</div></div>
+                <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">Hyuk</span><span class="action">(低聲)</span></div><div class="speaker-text">「我試試。」</div></div>
+            </div>
+            <div class="flex-buttons"><button id="nextStepBtn" class="btn-primary">繼續</button></div>
+        `;
+    }
+
     function renderPasswordPuzzle() {
         return `
             <div class="puzzle-area">
@@ -291,7 +334,18 @@
         `;
     }
 
-    // 場景三：自動獲得假證物
+    function renderPasswordResult(success) {
+        const msg = success
+            ? '<span class="correct-feedback">密碼正確！獲得主管 K.B. 的私人筆記。</span>'
+            : '<span class="wrong-feedback">警報觸發！暗格被銷毀，無法獲得筆記。</span>';
+        return `
+            <div class="puzzle-area">
+                <p>${msg}</p>
+                <div class="flex-buttons"><button id="continueAfterPwdBtn" class="btn-primary">繼續</button></div>
+            </div>
+        `;
+    }
+
     function renderScene3() {
         let html = `<div class="dialogue-container">`;
         if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_1.name)) {
@@ -309,104 +363,125 @@
         return html;
     }
 
-    // 結尾跳轉
-    function finishAndExit() {
-        finishAndSave();
-    }
-
-    // 渲染主流程
-    function renderScene(sceneIndex) {
+    // ----- 流程控制 -----
+    function loadStep(step) {
         const container = document.getElementById('storyContent');
         if (!container) return;
-        switch(sceneIndex) {
-            case 0: container.innerHTML = renderScene0(); break;
-            case 1: container.innerHTML = renderScene1Start(); break;
-            case 2: container.innerHTML = renderFirstChoice(); bindFirstChoice(); break;
-            case 3: container.innerHTML = renderAfterFirstSuccess(); bindNextToSecondChoice(); break;
-            case 4: container.innerHTML = renderSecondChoice(); bindSecondChoice(); break;
-            case 5: container.innerHTML = renderPasswordPuzzle(); bindPasswordPuzzle(); break;
-            case 6: container.innerHTML = renderScene3(); bindFinish(); break;
-            default: break;
+        let html = '';
+        switch(step) {
+            case 0: html = renderScene0(); break;
+            case 1: html = renderScene1Start(); break;
+            case 2: html = renderFirstChoice(); break;
+            case 3: html = renderFirstChoiceResult(firstChoiceCorrect); break;
+            case 4: html = renderAfterFirstSuccess(); break;
+            case 5: html = renderSecondChoice(); break;
+            case 6: html = renderSecondChoiceResult(secondChoiceCorrect); break;
+            case 7: html = renderPasswordIntro(); break;
+            case 8: html = renderPasswordPuzzle(); break;
+            case 9: html = renderPasswordResult(passwordSuccess); break;
+            case 10: html = renderScene3(); break;
+            default: return;
         }
+        container.innerHTML = html;
+        attachStepEvents(step);
     }
 
-    // 事件綁定
-    function bindNextScene() { document.getElementById('nextSceneBtn')?.addEventListener('click', () => renderScene(1)); }
-    function bindNextToChoice1() { document.getElementById('nextToChoice1Btn')?.addEventListener('click', () => renderScene(2)); }
-    function bindFirstChoice() {
-        document.getElementById('choice1_A')?.addEventListener('click', () => handleFirstChoice(true));
-        document.getElementById('choice1_B')?.addEventListener('click', () => handleFirstChoice(false));
-        document.getElementById('choice1_C')?.addEventListener('click', () => handleFirstChoice(false));
-    }
-    function handleFirstChoice(isCorrect) {
-        if (isCorrect) {
-            firstChoiceCorrect = true;
-            document.getElementById('choiceFeedback').innerHTML = '<span class="correct-feedback">米哈烏開始詳細說明…</span>';
-            setTimeout(() => { renderScene(3); }, 1000);
-        } else {
-            firstChoiceCorrect = false;
-            document.getElementById('choiceFeedback').innerHTML = '<span class="wrong-feedback">米哈烏嚇得閉口不言，審訊失敗。</span>';
-            // 跳過場景二、無法獲得真證物，直接到場景三
-            setTimeout(() => { 
-                // 確保沒有真證物
-                renderScene(6); 
-            }, 1500);
+    function attachStepEvents(step) {
+        if (step === 0 || step === 1 || step === 4 || step === 7) {
+            const btn = document.getElementById('nextStepBtn');
+            if (btn) btn.onclick = () => loadStep(step + 1);
         }
-    }
-    function bindNextToSecondChoice() {
-        document.getElementById('nextToSecondChoiceBtn')?.addEventListener('click', () => renderScene(4));
-    }
-    function bindSecondChoice() {
-        document.getElementById('choice2_A')?.addEventListener('click', () => handleSecondChoice(true));
-        document.getElementById('choice2_B')?.addEventListener('click', () => handleSecondChoice(false));
-        document.getElementById('choice2_C')?.addEventListener('click', () => handleSecondChoice(false));
-    }
-    function handleSecondChoice(isCorrect) {
-        if (isCorrect) {
-            secondChoiceCorrect = true;
-            addEvidence(REAL_EVIDENCE_1);
-            document.getElementById('choice2Feedback').innerHTML = '<span class="correct-feedback">獲得米哈烏的證詞錄音與簽名文件。</span>';
-            setTimeout(() => { renderScene(5); }, 1000);
-        } else {
-            secondChoiceCorrect = false;
-            document.getElementById('choice2Feedback').innerHTML = '<span class="wrong-feedback">米哈烏拒絕簽字，證詞無效。</span>';
-            setTimeout(() => { renderScene(6); }, 1500);
+        else if (step === 2) {
+            // 第一次選擇，綁定選項並禁用點擊後其他選項
+            const optA = document.getElementById('choice1_A');
+            const optB = document.getElementById('choice1_B');
+            const optC = document.getElementById('choice1_C');
+            const handleChoice = (isCorrect) => {
+                if (selectedFirst) return;
+                selectedFirst = true;
+                firstChoiceCorrect = isCorrect;
+                // 禁用所有選項
+                [optA, optB, optC].forEach(btn => btn.disabled = true);
+                // 顯示結果並進入下一步
+                loadStep(3);
+            };
+            if (optA) optA.onclick = () => handleChoice(true);
+            if (optB) optB.onclick = () => handleChoice(false);
+            if (optC) optC.onclick = () => handleChoice(false);
         }
-    }
-    function bindPasswordPuzzle() {
-        attemptsLeft = 3;
-        const submitBtn = document.getElementById('submitPwdBtn');
-        const input = document.getElementById('pwdInput');
-        const feedback = document.getElementById('pwdFeedback');
-        submitBtn?.addEventListener('click', () => {
-            const val = input.value.trim();
-            if (val === '031547') {
-                passwordSuccess = true;
-                addEvidence(REAL_EVIDENCE_2);
-                feedback.innerHTML = '<span class="correct-feedback">密碼正確！獲得主管 K.B. 的私人筆記。</span>';
-                setTimeout(() => { renderScene(6); }, 1500);
-            } else {
-                attemptsLeft--;
-                if (attemptsLeft > 0) {
-                    feedback.innerHTML = `<span class="wrong-feedback">密碼錯誤，剩餘次數：${attemptsLeft}</span>`;
-                    document.querySelector('.attempts-left').innerText = `剩餘嘗試次數：${attemptsLeft}`;
-                } else {
-                    feedback.innerHTML = '<span class="wrong-feedback">警報觸發！暗格被銷毀，無法獲得筆記。</span>';
-                    // 添加一個假證物3
-                    if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_3.name)) {
-                        addEvidence(FAKE_EVIDENCE_3);
-                    }
-                    setTimeout(() => { renderScene(6); }, 1500);
-                }
+        else if (step === 3) {
+            const continueBtn = document.getElementById('continueAfterChoiceBtn');
+            if (continueBtn) {
+                continueBtn.onclick = () => {
+                    if (firstChoiceCorrect) loadStep(4);
+                    else loadStep(10);  // 失敗直接到場景三
+                };
             }
-            input.value = '';
-        });
-    }
-    function bindFinish() {
-        document.getElementById('finishBtn')?.addEventListener('click', () => finishAndSave());
+        }
+        else if (step === 5) {
+            const optA = document.getElementById('choice2_A');
+            const optB = document.getElementById('choice2_B');
+            const optC = document.getElementById('choice2_C');
+            const handleChoice = (isCorrect) => {
+                if (selectedSecond) return;
+                selectedSecond = true;
+                secondChoiceCorrect = isCorrect;
+                if (isCorrect) addEvidence(REAL_EVIDENCE_1);
+                [optA, optB, optC].forEach(btn => btn.disabled = true);
+                loadStep(6);
+            };
+            if (optA) optA.onclick = () => handleChoice(true);
+            if (optB) optB.onclick = () => handleChoice(false);
+            if (optC) optC.onclick = () => handleChoice(false);
+        }
+        else if (step === 6) {
+            const continueBtn = document.getElementById('continueAfterChoice2Btn');
+            if (continueBtn) {
+                continueBtn.onclick = () => {
+                    if (secondChoiceCorrect) loadStep(7);
+                    else loadStep(10);
+                };
+            }
+        }
+        else if (step === 8) {
+            const submitBtn = document.getElementById('submitPwdBtn');
+            const input = document.getElementById('pwdInput');
+            const feedback = document.getElementById('pwdFeedback');
+            let localAttempts = attemptsLeft;
+            const checkPassword = () => {
+                const val = input.value.trim();
+                if (val === '031547') {
+                    passwordSuccess = true;
+                    addEvidence(REAL_EVIDENCE_2);
+                    loadStep(9);
+                } else {
+                    localAttempts--;
+                    if (localAttempts > 0) {
+                        feedback.innerHTML = `<span class="wrong-feedback">密碼錯誤，剩餘次數：${localAttempts}</span>`;
+                        document.querySelector('.attempts-left').innerText = `剩餘嘗試次數：${localAttempts}`;
+                    } else {
+                        passwordSuccess = false;
+                        if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_3.name)) {
+                            addEvidence(FAKE_EVIDENCE_3);
+                        }
+                        loadStep(9);
+                    }
+                }
+                input.value = '';
+            };
+            if (submitBtn) submitBtn.onclick = checkPassword;
+        }
+        else if (step === 9) {
+            const continueBtn = document.getElementById('continueAfterPwdBtn');
+            if (continueBtn) continueBtn.onclick = () => loadStep(10);
+        }
+        else if (step === 10) {
+            const finishBtn = document.getElementById('finishBtn');
+            if (finishBtn) finishBtn.onclick = () => finishAndSave();
+        }
     }
 
-    // 初始載入時檢查是否已完成
+    // ----- 初始化 -----
     window.addEventListener('load', () => {
         const progress = loadProgress();
         if (progress.completed.N) {
@@ -414,8 +489,8 @@
             redirectToMain();
             return;
         }
-        renderScene(0);
-        // 共用按鈕
+        loadStep(0);
+
         document.getElementById('viewEvidenceBtn').addEventListener('click', () => {
             document.getElementById('evidenceModal').style.display = 'flex';
             updateEvidenceModal();
@@ -424,11 +499,6 @@
             document.getElementById('evidenceModal').style.display = 'none';
         });
         document.getElementById('abandonBtn').addEventListener('click', abandon);
-        // 重新綁定場景0的事件
-        document.addEventListener('click', (e) => {
-            if (e.target.id === 'nextSceneBtn') renderScene(1);
-            if (e.target.id === 'nextToChoice1Btn') renderScene(2);
-        });
     });
 </script>
 </body>
