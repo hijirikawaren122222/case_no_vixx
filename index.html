@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case No VIXX — 黑疫調查檔案</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="game-container" id="app">
+    <!-- 視圖1：開場畫面 -->
+    <div id="splashView" class="view active">
+        <div class="title">
+            <h1>Case No VIXX</h1>
+            <p>黑疫調查檔案 · 1944</p>
+        </div>
+        <button id="startBtn" class="btn-primary">開始調查</button>
+    </div>
+
+    <!-- 視圖2：世界觀 -->
+    <div id="worldView" class="view">
+        <div class="title"><h1>背景</h1></div>
+        <div class="text-box">
+            <p>1944年。戰火包圍的某地，一種未知傳染病正在平民中迅速蔓延。</p>
+            <p>患者高燒、咳血，皮膚浮現黑色網狀紋。三至五日內死亡，死亡率超過七成。</p>
+            <p>當地處於軍事管制之下，所有通訊被封鎖，醫療機構被軍方接管。</p>
+            <p>一份秘密報告指出，疫情可能與一座廢棄工廠的地下實驗室有關。</p>
+            <p>一支由四名專家組成的調查小組被派遣至此：心理側寫師 N、科學搜查刑警 Leo、黑客 Ken 與私家偵探 Hyuk。</p>
+            <p>他們必須突破信息封鎖與物資匱乏，各自深入險境，蒐集證物，最終在圓桌會議上拼湊出被掩埋的真相。</p>
+            <p><strong>這不是天災。</strong><br>但誰在掩蓋？誰在說謊？<br>真相只有一個。</p>
+        </div>
+        <button id="worldContinueBtn" class="btn-primary">繼續</button>
+    </div>
+
+    <!-- 視圖3：小組討論 -->
+    <div id="debriefView" class="view">
+        <div class="title"><h1>會議 · 廢棄修道院</h1></div>
+        <div class="story-text">
+            <div class="dialogue"><strong>Leo</strong>：「病死者的肺部組織樣本分析基本完成了。不是自然突變。基因序列中有一段非編碼插入片段，指向實驗室人工干預。」</div>
+            <div class="dialogue"><strong>N</strong>：「所以從一開始就不是天災。」</div>
+            <div class="dialogue"><strong>Ken</strong>：「我截到一段編碼電文。加密等級很高，但部分已可解讀。3月15日……D-7項目發生洩漏。」</div>
+            <div class="dialogue"><strong>Hyuk</strong>：「工廠北側排水溝盡頭，距離通風口最近的圍牆位置。金屬邊緣有不規則腐蝕，大量化學灼燒痕跡。」</div>
+            <div class="dialogue">短暫的沉默。</div>
+            <div class="dialogue"><strong>N</strong>：「各自確認手上的行動路徑。Leo，繼續分析剩餘的生物樣本。Ken，把那段電文完整解開，查查D-7到底是什麼。Hyuk，再去工廠周邊一趟，這次注意排水溝下游的水質狀況。」</div>
+            <div class="dialogue"><strong>Leo</strong>：「天亮前回來。」</div>
+            <div class="dialogue"><strong>Ken</strong>：「如果我三小時沒消息，你們可以把我從機房拖走。」</div>
+            <div class="dialogue"><strong>Hyuk</strong>：「又在說這種話。從來沒準過。」</div>
+            <div class="dialogue"><strong>N</strong>：「出發。」</div>
+        </div>
+        <div class="action-note">四人起身，各自散入走廊。遠處傳來宵禁巡邏隊的腳步聲。<br>現在，選擇你要首先調查的角色。</div>
+        <button id="toRoleSelectBtn" class="btn-primary">選擇調查角色</button>
+    </div>
+
+    <!-- 視圖4：角色選擇主界面 -->
+    <div id="mainView" class="view">
+        <div class="title"><h1>調查小組</h1></div>
+        <div class="role-grid" id="roleCardsArea"></div>
+        <div class="info-note">
+            ※ 點擊角色卡片，進入該成員的調查行動。<br>
+            ※ 每位成員的調查相互獨立，可任意順序進行。<br>
+            ※ 完成一名成員後，其狀態將變為【已完成】。<br>
+            ※ 所有成員調查完畢後，圓桌會議將自動解鎖。
+        </div>
+        <div class="flex-buttons">
+            <button id="resetProgressBtn">⟳ 重置進度</button>
+            <button id="gameHelpBtn">📖 遊戲說明</button>
+        </div>
+        <footer>Case No VIXX — 真相只會愈挖愈深</footer>
+    </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+    // 視圖切換
+    const splash = document.getElementById('splashView');
+    const world = document.getElementById('worldView');
+    const debrief = document.getElementById('debriefView');
+    const main = document.getElementById('mainView');
+
+    function showView(viewId) {
+        [splash, world, debrief, main].forEach(v => v.classList.remove('active'));
+        if (viewId === 'splash') splash.classList.add('active');
+        else if (viewId === 'world') world.classList.add('active');
+        else if (viewId === 'debrief') debrief.classList.add('active');
+        else if (viewId === 'main') main.classList.add('active');
+    }
+
+    document.getElementById('startBtn').onclick = () => showView('world');
+    document.getElementById('worldContinueBtn').onclick = () => showView('debrief');
+    document.getElementById('toRoleSelectBtn').onclick = () => {
+        updateRoleUI();
+        showView('main');
+    };
+    document.getElementById('resetProgressBtn').onclick = () => {
+        resetAllProgress();
+        updateRoleUI();
+        alert('調查進度已重置');
+    };
+    document.getElementById('gameHelpBtn').onclick = () => alert('遊戲說明：...');
+
+    function updateRoleUI() {
+        const progress = loadProgress();
+        const roles = [
+            { id: 'N', name: 'N', title: '心理側寫師' },
+            { id: 'Leo', name: 'Leo', title: '科學搜查刑警' },
+            { id: 'Ken', name: 'Ken', title: '黑客' },
+            { id: 'Hyuk', name: 'Hyuk', title: '私家偵探' }
+        ];
+        const container = document.getElementById('roleCardsArea');
+        container.innerHTML = roles.map(r => {
+            const completed = progress.completed[r.id];
+            return `
+                <div class="role-card" data-role="${r.id}">
+                    <div class="role-name">${r.name}</div>
+                    <div class="role-title">${r.title}</div>
+                    <div class="status ${completed ? 'status-complete' : ''}">【${completed ? '已完成' : '未開始'}】</div>
+                </div>
+            `;
+        }).join('');
+        // 綁定點擊事件
+        document.querySelectorAll('.role-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const role = card.dataset.role;
+                const progress = loadProgress();
+                if (progress.completed[role]) {
+                    alert(`${role} 已完成調查，無法再次進入。`);
+                } else {
+                    window.location.href = `story_${role.toLowerCase()}.html`;
+                }
+            });
+        });
+    }
+
+    // 初次加載主界面時刷新狀態
+    if (document.getElementById('mainView')) updateRoleUI();
+</script>
+</body>
+</html>
