@@ -74,7 +74,7 @@ body {
     box-shadow: 0 6px 12px rgba(0,0,0,0.3);
 }
 
-/* Galgame風格對話框容器 */
+/* 對話框容器 - 獨立氣泡 */
 .dialogue-container {
     display: flex;
     flex-direction: column;
@@ -119,7 +119,6 @@ body {
     border-bottom: 1px dashed #8f7a5c;
 }
 
-/* 按鈕樣式 */
 button {
     background: #2d3440;
     border: 1px solid #7c8aa0;
@@ -154,11 +153,7 @@ button:hover {
     background: #2c3a3f;
     border-color: #8595aa;
 }
-.center-btn {
-    text-align: center;
-    margin-top: 1.2rem;
-}
-/* 角色卡片網格 */
+
 .role-grid {
     display: flex;
     flex-wrap: wrap;
