@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="style.css">
     <style>
         * { box-sizing: border-box; }
-        /* 背景可滾動，但遊戲框固定位置 */
         body {
             margin: 0;
             padding: 20px;
@@ -17,14 +16,13 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: flex-start;  /* 改為靠上，讓框往上 */
+            align-items: flex-start;
             overflow-y: auto;
         }
-        /* 遊戲框，往上靠一些 */
         .game-machine {
             width: 95%;
             max-width: 550px;
-            margin-top: 5vh;        /* 往上調整 */
+            margin-top: 2vh;
             margin-bottom: 5vh;
             height: auto;
             max-height: 85vh;
@@ -205,7 +203,7 @@
         choice2Options = shuffleArray([
             { text: "沉默片刻，將桌上的懷表輕輕推近他。金屬的滴答聲填滿了空白。", value: 2, response: "米哈烏幾秒後鬆開緊握的拳頭，低聲說：「……那時候，我看到有人被帶走了。再也沒有回來。」" },
             { text: "向後靠向椅背，雙手抱胸，用不變的語調說：「不急。你想清楚再說。」", value: 1, response: "米哈烏舔了舔嘴唇，含混地說：「反正……就是燒了東西。細節我記不太清了。」" },
-            { text: "身體前傾，語氣加重：「你在隱瞞什麼？你簽過的文件裡寫了什麼？」", value: 0, response: "米哈烏猛地後仰，臉色發白，之後只重複「我什麼都不知道。」" }
+            { text: "身體微微前傾，盯著他的眼睛，緩緩說：「你在怕什麼？怕說出來之後，你家人也會被燒掉？」", value: 0, response: "米哈烏猛地抬頭，臉色發白，然後迅速低下頭，只重複「我不知道……我什麼都不知道……」" }
         ]);
         choice3Options = shuffleArray([
             { text: "「這是你女兒昨天畫的。她問媽媽，爸爸什麼時候回來。」（拿出照片）", value: 2, response: "米哈烏看著照片，眼淚奪眶而出：「我……我對不起她們……」" },
@@ -256,7 +254,8 @@
         note: "（筆記：格式不符軍方標準，簽名人「W. Schmidt」從未出現在實驗室名單中。內容刻意聳動，可能是 K.B. 事後偽造來轉移焦點的。）",
         isReal: false
     };
-// ---------- 輔助函數 ----------
+
+    // 輔助函數
     function addEvidence(ev) {
         if (!evidenceCollected.some(e => e.name === ev.name)) {
             evidenceCollected.push(ev);
@@ -290,8 +289,7 @@
         const bar = document.getElementById('locationBar');
         if (bar) bar.innerText = loc;
     }
-
-    // ========== 渲染函數 ==========
+// ========== 渲染函數 ==========
     function renderScene0() {
         setLocation("安全屋 · 途中");
         return `
@@ -425,16 +423,8 @@
     function renderScene3Part2() {
         let html = `<div class="dialogue-container">`;
         if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_2.name)) {
-            html += `<div class="narration-text">N 彎腰從地上撿起半張紙片。</div>`;
-        }
-        html += `</div>`;
-        return html;
-    }
-
-    function renderScene3Part3() {
-        let html = `<div class="dialogue-container">`;
-        if (!evidenceCollected.some(e => e.name === FAKE_EVIDENCE_2.name)) {
-            html += `<div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「這是什麼？」</div></div>
+            html += `<div class="narration-text">N 彎腰從地上撿起半張紙片。</div>
+            <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">N</span></div><div class="speaker-text">「這是什麼？」</div></div>
             <div class="dialogue-bubble"><div class="speaker-name"><span class="speaker-name-text">米哈烏</span></div><div class="speaker-text">「哦，那是上週有人從門縫塞進來的另一張紙。上面寫的是……一些統計數字。我覺得不太可信，就扔地上了。」</div></div>`;
             addEvidence(FAKE_EVIDENCE_2);
         }
@@ -442,10 +432,11 @@
         return html;
     }
 
-    function renderScene3Part4() {
+    function renderScene3Part3() {
         return `<div class="dialogue-container"><div class="narration-text">該回去了。希望其他人也有發現。</div></div>`;
     }
 // ========== 流程控制 ==========
+    let step = 0;
     function loadStep(stepId) {
         step = stepId;
         const container = document.getElementById('storyContent');
@@ -467,7 +458,7 @@
                     showContinue = true;
                     continueTarget = 7;
                 } else {
-                    loadStep(12);
+                    loadStep(11);
                     return;
                 }
                 break;
@@ -479,7 +470,7 @@
                 if ((finalOutcome === 3 && signedSuccess) || (finalOutcome === 2 && signedSuccess)) {
                     html = renderPasswordIntro();
                 } else {
-                    loadStep(12);
+                    loadStep(11);
                     return;
                 }
                 break;
@@ -498,9 +489,6 @@
                 break;
             case 13:
                 html = renderScene3Part3();
-                break;
-            case 14:
-                html = renderScene3Part4();
                 break;
             default: return;
         }
@@ -531,9 +519,6 @@
             const btn = document.getElementById('continueBtn');
             if (btn) btn.onclick = () => loadStep(13);
         } else if (step === 13) {
-            const btn = document.getElementById('continueBtn');
-            if (btn) btn.onclick = () => loadStep(14);
-        } else if (step === 14) {
             const btn = document.getElementById('continueBtn');
             if (btn) btn.onclick = () => finishAndSave();
         }
